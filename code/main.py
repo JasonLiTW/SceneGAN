@@ -24,6 +24,7 @@ sys.path.append(dir_path)
 
 
 def parse_args():
+    # test for aggan remove
     parser = argparse.ArgumentParser(description='Train a AttnGAN network')
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
