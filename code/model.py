@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from torchvision import models
 import torch.utils.model_zoo as model_zoo
 import torch.nn.functional as F
+import numpy as np
 
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
@@ -75,7 +76,7 @@ class ResBlock(nn.Module):
 class RNN_ENCODER(nn.Module):
     def __init__(self, ntoken, ninput=300, drop_prob=0.5,
                  nhidden=128, nlayers=1, bidirectional=True):
-        super(RNN_ENCODER, self).__init__()
+        super(RNN_ENCODER, self).__init__()        
         self.n_steps = cfg.TEXT.WORDS_NUM
         self.ntoken = ntoken  # size of the dictionary
         self.ninput = ninput  # size of each embedding vector
@@ -134,7 +135,11 @@ class RNN_ENCODER(nn.Module):
         # input: torch.LongTensor of size batch x n_steps
         # --> emb: batch x n_steps x ninput
         emb = self.drop(self.encoder(captions))
-        #
+
+        # add by neptune 2019/02/15
+        # noise = torch.randn(emb.size(0), emb.size(1), self.word_rand).cuda()
+        # emb = torch.cat((emb, noise), dim=2)
+        
         # Returns: a PackedSequence object
         cap_lens = cap_lens.data.tolist()
         emb = pack_padded_sequence(emb, cap_lens, batch_first=True)
@@ -167,9 +172,14 @@ class CNN_ENCODER(nn.Module):
         else:
             self.nef = 256  # define a uniform ranker
 
-        model = models.inception_v3()
-        url = 'https://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth'
-        model.load_state_dict(model_zoo.load_url(url))
+        model = models.inception_v3()        
+        url = 'http://download.pytorch.org/models/inception_v3_google-1a9a5a14.pth'
+        original_weights = model_zoo.load_url(url)
+        # model.load_state_dict(model_zoo.load_url(url))
+        weights = torch.load('../models/finetuning5.pth')
+        weights['fc.weight'] = original_weights['fc.weight']
+        weights['fc.bias'] = original_weights['fc.bias']
+        model.load_state_dict(weights)
         for param in model.parameters():
             param.requires_grad = False
         print('Load pretrained model from ', url)

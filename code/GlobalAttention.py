@@ -82,7 +82,7 @@ class GlobalAttentionGeneral(nn.Module):
     def forward(self, input, context):
         """
             input: batch x idf x ih x iw (queryL=ihxiw)
-            context: batch x cdf x sourceL
+            context: batch x cdf x sourceL (sourceL=seqLen)
         """
         ih, iw = input.size(2), input.size(3)
         queryL = ih * iw
@@ -105,7 +105,7 @@ class GlobalAttentionGeneral(nn.Module):
         if self.mask is not None:
             # batch_size x sourceL --> batch_size*queryL x sourceL
             mask = self.mask.repeat(queryL, 1)
-            attn.data.masked_fill_(mask.data, -float('inf'))
+            attn.data.masked_fill_(mask.data, -float('inf')) # 把caption=0 "<end>"的地方機率設到無限小
         attn = self.sm(attn)  # Eq. (2)
         # --> batch x queryL x sourceL
         attn = attn.view(batch_size, queryL, sourceL)

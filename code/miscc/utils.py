@@ -24,7 +24,7 @@ COLOR_DIC = {0:[128,64,128],  1:[244, 35,232],
              14:[119,11, 32], 15:[0, 60,100],
              16:[0, 80, 100], 17:[0, 0, 230],
              18:[0,  0, 70],  19:[0, 0,  0]}
-FONT_MAX = 50
+FONT_MAX = 50 # 50 default
 
 
 def drawCaption(convas, captions, ixtoword, vis_size, off1=2, off2=2):
@@ -32,15 +32,16 @@ def drawCaption(convas, captions, ixtoword, vis_size, off1=2, off2=2):
     img_txt = Image.fromarray(convas)
     # get a font
     # fnt = None  # ImageFont.truetype('Pillow/Tests/fonts/FreeMono.ttf', 50)
-    fnt = ImageFont.truetype('Pillow/Tests/fonts/FreeMono.ttf', 50)
+    #fnt = ImageFont.truetype('arial.ttf', 50)
+    fnt = ImageFont.load_default().font    
     # get a drawing context
     d = ImageDraw.Draw(img_txt)
     sentence_list = []
     for i in range(num):
         cap = captions[i].data.cpu().numpy()
         sentence = []
-        for j in range(len(cap)):
-            if cap[j] == 0:
+        for j in range(len(cap)):            
+            if cap[j] == 0:                
                 break
             word = ixtoword[cap[j]].encode('ascii', 'ignore').decode('ascii')
             d.text(((j + off1) * (vis_size + off2), i * FONT_MAX), '%d:%s' % (j, word[:6]),
@@ -49,12 +50,38 @@ def drawCaption(convas, captions, ixtoword, vis_size, off1=2, off2=2):
         sentence_list.append(sentence)
     return img_txt, sentence_list
 
+def build_super_images3(real_imgs, captions, ixtoword,
+                        attn_maps, att_sze, lr_imgs=None,
+                        batch_size=cfg.TRAIN.BATCH_SIZE,
+                        max_word_num=cfg.TEXT.WORDS_NUM):
+    nvis = 12
+    row_num = 4
+    col_num = 3
+    real_imgs = real_imgs[:nvis]
+    hr_img_size = real_imgs.size(2)
+    lr_img_size = lr_imgs.size(2)
+    lr_super_image = Image.new('RGB', (col_num*hr_img_size, row_num*hr_img_size))
+    hr_super_image = Image.new('RGB', (col_num*hr_img_size, row_num*hr_img_size))
+    lr_imgs = nn.Upsample(size=(hr_img_size, hr_img_size), mode='bilinear')(lr_imgs)
+    for y in range(1,row_num+1):
+        for x in range(1,col_num+1):
+            lr = lr_imgs[(x-1)+(y-1)*3].add_(1).div_(2).mul_(255)
+            lr = lr.data.numpy().astype(np.uint8)
+            lr = lr.transpose([1,2,0])
+            lr = Image.fromarray(lr)
+            hr = real_imgs[(x-1)+(y-1)*3].add_(1).div_(2).mul_(255)
+            hr = hr.data.numpy().astype(np.uint8)
+            hr = hr.transpose([1,2,0])
+            hr = Image.fromarray(hr)
+            lr_super_image.paste(lr, (int(x-1)*hr_img_size, int(y-1)*hr_img_size))
+            hr_super_image.paste(hr, (int(x-1)*hr_img_size, int(y-1)*hr_img_size))
+    return [lr_super_image, hr_super_image]
 
 def build_super_images(real_imgs, captions, ixtoword,
                        attn_maps, att_sze, lr_imgs=None,
                        batch_size=cfg.TRAIN.BATCH_SIZE,
                        max_word_num=cfg.TEXT.WORDS_NUM):
-    nvis = 8
+    nvis = 8 # 要畫幾個
     real_imgs = real_imgs[:nvis]
     if lr_imgs is not None:
         lr_imgs = lr_imgs[:nvis]

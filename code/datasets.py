@@ -76,11 +76,11 @@ def get_imgs(img_path, imsize, bbox=None,
     ret = []
     if cfg.GAN.B_DCGAN:
         ret = [normalize(img)]
-    else:
+    else:        
         for i in range(cfg.TREE.BRANCH_NUM):
-            # print(imsize[i])
+            # print(imsize[i])            
             if i < (cfg.TREE.BRANCH_NUM - 1):
-                re_img = transforms.Scale(imsize[i])(img)
+                re_img = transforms.Resize(imsize[i])(img)
             else:
                 re_img = img
             ret.append(normalize(re_img))
@@ -113,7 +113,7 @@ class TextDataset(data.Dataset):
         split_dir = os.path.join(data_dir, split)
 
         self.filenames, self.captions, self.ixtoword, \
-            self.wordtoix, self.n_words = self.load_text_data(data_dir, split)
+            self.wordtoix, self.n_words = self.load_text_data(data_dir, split)        
 
         self.class_id = self.load_class_id(split_dir, len(self.filenames))
         self.number_example = len(self.filenames)
@@ -143,10 +143,11 @@ class TextDataset(data.Dataset):
         return filename_bbox
 
     def load_captions(self, data_dir, filenames):
-        all_captions = []
+        all_captions = []        
         for i in range(len(filenames)):
             cap_path = '%s/text/%s.txt' % (data_dir, filenames[i])
             with open(cap_path, "r") as f:
+                print("caption_path", cap_path)
                 captions = f.read().decode('utf8').split('\n')
                 cnt = 0
                 for cap in captions:
@@ -218,6 +219,7 @@ class TextDataset(data.Dataset):
 
     def load_text_data(self, data_dir, split):
         filepath = os.path.join(data_dir, 'captions.pickle')
+        print("=====filepath", filepath)
         train_names = self.load_filenames(data_dir, 'train')
         test_names = self.load_filenames(data_dir, 'test')
         if not os.path.isfile(filepath):

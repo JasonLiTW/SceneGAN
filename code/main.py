@@ -1,7 +1,9 @@
 from __future__ import print_function
 
 from miscc.config import cfg, cfg_from_file
-from datasets import TextDataset
+# from datasets import TextDataset
+# from cocodatasets import TextDataset
+from sceneDatasets import TextDataset
 from trainer import condGANTrainer as trainer
 
 import os
@@ -39,14 +41,14 @@ def gen_example(wordtoix, algo):
     filepath = '%s/example_filenames.txt' % (cfg.DATA_DIR)
     data_dic = {}
     with open(filepath, "r") as f:
-        filenames = f.read().decode('utf8').split('\n')
+        filenames = f.read().split('\n')
         for name in filenames:
             if len(name) == 0:
                 continue
-            filepath = '%s/%s.txt' % (cfg.DATA_DIR, name)
+            filepath = '%s/%s.txt' % (cfg.DATA_DIR, name)            
             with open(filepath, "r") as f:
                 print('Load from:', name)
-                sentences = f.read().decode('utf8').split('\n')
+                sentences = f.read().split('\n')
                 # a list of indices for a sentence
                 captions = []
                 cap_lens = []
@@ -121,9 +123,10 @@ if __name__ == "__main__":
     # Get data loader
     imsize = cfg.TREE.BASE_SIZE * (2 ** (cfg.TREE.BRANCH_NUM - 1))
     image_transform = transforms.Compose([
-        transforms.Scale(int(imsize * 76 / 64)),
+        transforms.Resize(int(imsize * 76 / 64)),
         transforms.RandomCrop(imsize),
         transforms.RandomHorizontalFlip()])
+    print("============data_dir==========", cfg.DATA_DIR)
     dataset = TextDataset(cfg.DATA_DIR, split_dir,
                           base_size=cfg.TREE.BASE_SIZE,
                           transform=image_transform)

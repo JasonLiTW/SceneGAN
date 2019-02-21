@@ -11,7 +11,7 @@ from PIL import Image
 
 from miscc.config import cfg
 from miscc.utils import mkdir_p
-from miscc.utils import build_super_images, build_super_images2
+from miscc.utils import build_super_images, build_super_images2, build_super_images3
 from miscc.utils import weights_init, load_params, copy_G_params
 from model import G_DCGAN, G_NET
 from datasets import prepare_data
@@ -214,6 +214,50 @@ class condGANTrainer(object):
             fullpath = '%s/D_%s_%d.png'\
                 % (self.image_dir, name, gen_iterations)
             im.save(fullpath)
+    def save_img_results2(self, netG, noise, sent_emb, words_embs, mask,
+                         image_encoder, captions, cap_lens,
+                         epoch, step, name='current'):
+        # Save images
+        fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask)
+        for i in range(len(attention_maps)):
+            if len(fake_imgs) > 1:
+                img = fake_imgs[i + 1].detach().cpu()
+                lr_img = fake_imgs[i].detach().cpu()
+            else:
+                img = fake_imgs[0].detach().cpu()
+                lr_img = None
+            attn_maps = attention_maps[i]
+            att_sze = attn_maps.size(2)
+            img_set = \
+                build_super_images3(img, captions, self.ixtoword,
+                                   attn_maps, att_sze, lr_imgs=lr_img)
+            if img_set is not None:
+                # im = Image.fromarray(img_set)
+                mkdir_p('%s/specific_caption' % self.image_dir)
+                fullpath = '%s/specific_caption/%s_%d_%d.png'\
+                    % (self.image_dir, name, epoch, i)
+                fullpath2 = '%s/specific_caption/%s_%d_%d.png'\
+                    % (self.image_dir, name, epoch, i+1)
+                img_set[0].save(fullpath)
+                img_set[1].save(fullpath2)
+
+        # for i in range(len(netsD)):
+        # i = -1
+        # img = fake_imgs[i].detach()
+        # region_features, _ = image_encoder(img)
+        # att_sze = region_features.size(2)
+        # _, _, att_maps = words_loss(region_features.detach(),
+        #                             words_embs.detach(),
+        #                             None, cap_lens,
+        #                             None, self.batch_size)
+        # img_set, _ = \
+        #     build_super_images(fake_imgs[i].detach().cpu(),
+        #                        captions, self.ixtoword, att_maps, att_sze)
+        # if img_set is not None:
+        #     im = Image.fromarray(img_set)
+        #     fullpath = '%s/D_%s_%d.png'\
+        #         % (self.image_dir, name, gen_iterations)
+        #     im.save(fullpath)
 
     def train(self):
         text_encoder, image_encoder, netG, netsD, start_epoch = self.build_models()
@@ -229,6 +273,7 @@ class condGANTrainer(object):
             noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
 
         gen_iterations = 0
+        global_caption = []
         # gen_iterations = start_epoch * self.num_batches
         for epoch in range(start_epoch, self.max_epoch):
             start_t = time.time()
@@ -243,7 +288,8 @@ class condGANTrainer(object):
                 # (1) Prepare training data and Compute text embeddings
                 ######################################################
                 data = data_iter.next()
-                imgs, captions, cap_lens, class_ids, keys = prepare_data(data)
+                imgs, captions, cap_lens, class_ids, keys = prepare_data(data)                
+                
 
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x nef x seq_len
@@ -252,6 +298,7 @@ class condGANTrainer(object):
                 words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
                 mask = (captions == 0)
                 num_words = words_embs.size(2)
+                
                 if mask.size(1) > num_words:
                     mask = mask[:, :num_words]
 
@@ -274,7 +321,7 @@ class condGANTrainer(object):
                     errD.backward()
                     optimizersD[i].step()
                     errD_total += errD
-                    D_logs += 'errD%d: %.2f ' % (i, errD.data[0])
+                    D_logs += 'errD%d: %.2f ' % (i, errD.data.item())
 
                 #######################################################
                 # (4) Update G network: maximize log(D(G(z)))
@@ -291,17 +338,17 @@ class condGANTrainer(object):
                                    words_embs, sent_emb, match_labels, cap_lens, class_ids)
                 kl_loss = KL_loss(mu, logvar)
                 errG_total += kl_loss
-                G_logs += 'kl_loss: %.2f ' % kl_loss.data[0]
+                G_logs += 'kl_loss: %.2f ' % kl_loss.data.item()
                 # backward and update parameters
                 errG_total.backward()
                 optimizerG.step()
                 for p, avg_p in zip(netG.parameters(), avg_param_G):
                     avg_p.mul_(0.999).add_(0.001, p.data)
 
-                if gen_iterations % 100 == 0:
+                if gen_iterations % 10 == 0: # 100
                     print(D_logs + '\n' + G_logs)
                 # save images
-                if gen_iterations % 1000 == 0:
+                if gen_iterations % 100 == 0: # 1000
                     backup_para = copy_G_params(netG)
                     load_params(netG, avg_param_G)
                     self.save_img_results(netG, fixed_noise, sent_emb,
@@ -313,12 +360,38 @@ class condGANTrainer(object):
                     #                       words_embs, mask, image_encoder,
                     #                       captions, cap_lens,
                     #                       epoch, name='current')
+                if step % 100 == 0: # 1000
+                    backup_para = copy_G_params(netG)
+                    load_params(netG, avg_param_G)
+                    hidden = text_encoder.init_hidden(batch_size)
+                    # modification
+                    captions = np.tile([23, 2], (cfg.TRAIN.BATCH_SIZE, 1)).astype(int) # cpation = road filed
+                    captions2 = np.tile([21, 12], (cfg.TRAIN.BATCH_SIZE, 1)).astype(int) # caption = canal urban
+                    caption_lens = np.tile([2], (cfg.TRAIN.BATCH_SIZE, 1)).astype(int)
+                    caption_lens = caption_lens.squeeze()
+                    if cfg.CUDA:
+                        captions = torch.from_numpy(captions).cuda()
+                        captions2 = torch.from_numpy(captions2).cuda()
+                        caption_lens = torch.from_numpy(caption_lens).cuda()
+                    # modification end
+                    words_embs, sent_emb = text_encoder(captions, caption_lens, hidden)
+                    words_embs2, sent_emb2 = text_encoder(captions2, caption_lens, hidden)
+                    words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
+                    words_embs2, sent_emb2 = words_embs2.detach(), sent_emb2.detach()
+                    mask = (captions == 0)
+                    self.save_img_results2(netG, noise, sent_emb,
+                                          words_embs, mask, image_encoder,
+                                          captions, caption_lens, epoch, step, name='road_field')
+                    self.save_img_results2(netG, noise, sent_emb2,
+                                          words_embs2, mask, image_encoder,
+                                          captions2, caption_lens, epoch, step, name='canal_urban')
+                    load_params(netG, backup_para)
             end_t = time.time()
 
             print('''[%d/%d][%d]
                   Loss_D: %.2f Loss_G: %.2f Time: %.2fs'''
                   % (epoch, self.max_epoch, self.num_batches,
-                     errD_total.data[0], errG_total.data[0],
+                     errD_total.data.item(), errG_total.data.item(),
                      end_t - start_t))
 
             if epoch % cfg.TRAIN.SNAPSHOT_INTERVAL == 0:  # and epoch != 0:
