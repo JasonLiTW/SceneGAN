@@ -8,7 +8,6 @@ import pandas as pd
 import re
 import csv
 import os
-import piexif
 from PIL import Image
 from collections import defaultdict
 from datasets import TextDataset
@@ -353,7 +352,7 @@ def preprocess_sceneImage(split):
             'waterfall', 'coast']
 
     # f/field/cultivated c/canal/urban f/forest/broadleaf c/canal/natural
-    captions = pd.read_csv('../data/OpenImage/target.csv', header=None)
+    captions = pd.read_csv('../../AttnGAN_scene/data/OpenImage/target.csv', header=None)
     scene_captions = [spe for spe in scene_spec]
     word_counts = defaultdict(float)
     # vocabulary for OpenImage
@@ -395,9 +394,9 @@ def preprocess_sceneImage(split):
     class_ids = []
 
     for index, keyword in enumerate(keywords):
-        filenames = os.listdir('../data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize')
+        filenames = os.listdir('../../AttnGAN_scene/data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize')
         for filename in filenames:
-            filePaths.append('../data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize/'+filename)
+            filePaths.append('../../AttnGAN_scene/data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize/'+filename)
             fileCaptions.append(captions_new[index])
             caption_lens.append(len(captions_new[index]))
             class_ids.append(index)
@@ -405,15 +404,15 @@ def preprocess_sceneImage(split):
     for index, keyword in enumerate(scene_captions):
         count = 0
         if split == 'train':
-            with open('../data/scene/places365_train_standard.txt', 'r') as f:
+            with open('../../AttnGAN_scene/data/scene/places365_train_standard.txt', 'r') as f:
                 data = f.readlines()
                 filenames = [spec.strip('\n') for spec in data]
             for filename in filenames:
                 if filename.split(' ')[0].split('/')[-2] == keyword and count < 1000:                    
-                    filePaths.append('../data/scene/data_large' + filename.split(' ')[0])                    
+                    filePaths.append('../../AttnGAN_scene/data/scene/data_large' + filename.split(' ')[0])                    
                     count += 1
                 elif filename.split(' ')[0].split('/')[-2] == keyword.split('_')[-1] and count < 1000:
-                    filePaths.append('../data/scene/data_large' + filename.split(' ')[0])
+                    filePaths.append('../../AttnGAN_scene/data/scene/data_large' + filename.split(' ')[0])
                     count += 1
                 elif count < 1000:                    
                     continue
@@ -454,4 +453,4 @@ if __name__ == '__main__':
     num_pictures = 1000
     # get_keyword_imgs(keywords, num_pictures)
     # preprocess_openimage(1.0)
-    preprocess_sceneImage(split='train')
+    preprocess_sceneImage(split='test')
