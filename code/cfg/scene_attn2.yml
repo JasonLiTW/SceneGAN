@@ -1,4 +1,4 @@
-CONFIG_NAME: 'glu-gan2-1-1-1-5'
+CONFIG_NAME: 'glu-gan-4-5-10-5'
 
 DATASET_NAME: 'scene'
 DATA_DIR: '../data/OpenImage'
@@ -22,9 +22,9 @@ TRAIN:
     #
     NET_E: '../output/scene_DAMSM_2019_02_17_10_55_29/Model/text_encoder100.pth'
     SMOOTH:
-        GAMMA1: 1.0  # 1,2,5 good 4 best  10&100bad
-        GAMMA2: 1.0
-        GAMMA3: 1.0  # 10good 1&100bad
+        GAMMA1: 4.0  # 1,2,5 good 4 best  10&100bad
+        GAMMA2: 5.0
+        GAMMA3: 10.0  # 10good 1&100bad
         LAMBDA: 5.0 # 50 for cocodataset
 
 

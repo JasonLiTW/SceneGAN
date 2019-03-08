@@ -1,7 +1,7 @@
-CONFIG_NAME: 'attn2'
+CONFIG_NAME: 'scene4-5-10-5'
 
-DATASET_NAME: 'coco'
-DATA_DIR: '../data/coco'
+DATASET_NAME: 'scene'
+DATA_DIR: '../data/OpenImage'
 GPU_ID: 3
 WORKERS: 1
 
@@ -12,10 +12,10 @@ TREE:
 
 TRAIN:
     FLAG: False
-    NET_G: '../models/coco_AttnGAN2.pth'
+    NET_G: '../output/scene_glu-gan2-4-5-10-5_2019_03_07_12_06_26/Model/netG_epoch_10.pth'
     B_NET_D: False
-    BATCH_SIZE: 100
-    NET_E: '../DAMSMencoders/coco/text_encoder100.pth'
+    BATCH_SIZE: 10
+    NET_E: '../output/scene_DAMSM_2019_02_17_10_55_29/Model/text_encoder100.pth'
 
 
 GAN:
@@ -26,5 +26,5 @@ GAN:
 
 TEXT:
     EMBEDDING_DIM: 256
-    CAPTIONS_PER_IMAGE: 5
-    WORDS_NUM: 20
+    CAPTIONS_PER_IMAGE: 1
+    WORDS_NUM: 2

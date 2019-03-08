@@ -518,11 +518,19 @@ class condGANTrainer(object):
             print('Error: the path for morels is not found!')
         else:
             # Build and load the generator
+            batch_size = 10
             text_encoder = \
                 RNN_ENCODER(self.n_words, nhidden=cfg.TEXT.EMBEDDING_DIM)
+            print("=======self.n_words: %d", self.n_words)
             state_dict = \
                 torch.load(cfg.TRAIN.NET_E, map_location=lambda storage, loc: storage)
-            text_encoder.load_state_dict(state_dict)
+            # customed restore text encoder parameters
+            # ext_encoder.load_state_dict(state_dict)
+            own_state = text_encoder.state_dict()
+            for name, param in state_dict.items():
+                if name not in own_state:
+                    continue
+            own_state[name] = param
             print('Load text encoder from:', cfg.TRAIN.NET_E)
             text_encoder = text_encoder.cuda()
             text_encoder.eval()
@@ -531,7 +539,7 @@ class condGANTrainer(object):
             if cfg.GAN.B_DCGAN:
                 netG = G_DCGAN()
             else:
-                netG = G_NET()
+                netG = G_NET(text_encoder)
             s_tmp = cfg.TRAIN.NET_G[:cfg.TRAIN.NET_G.rfind('.pth')]
             model_dir = cfg.TRAIN.NET_G
             state_dict = \
@@ -545,33 +553,39 @@ class condGANTrainer(object):
                 mkdir_p(save_dir)
                 captions, cap_lens, sorted_indices = data_dic[key]
 
-                batch_size = captions.shape[0]
+                # batch_size = captions.shape[0]
+                total_time = len(captions)//batch_size
                 nz = cfg.GAN.Z_DIM
-                captions = Variable(torch.from_numpy(captions), volatile=True)
-                cap_lens = Variable(torch.from_numpy(cap_lens), volatile=True)
+                # captions = Variable(torch.from_numpy(captions), volatile=True)
+                # cap_lens = Variable(torch.from_numpy(cap_lens), volatile=True)
 
-                captions = captions.cuda()
-                cap_lens = cap_lens.cuda()
-                for i in range(1):  # 16
+                # captions = captions.cuda()
+                # cap_lens = cap_lens.cuda()
+                for i in range(total_time):  # 16
                     noise = Variable(torch.FloatTensor(batch_size, nz), volatile=True)
                     noise = noise.cuda()
+                    caption_tmp = Variable(torch.from_numpy(captions[i*batch_size:(i+1)*batch_size]), volatile=True)
+                    cap_len_tmp = Variable(torch.from_numpy(cap_lens[i*batch_size:(i+1)*batch_size]), volatile=True)
+                    caption_tmp = caption_tmp.cuda()
+                    cap_len_tmp = cap_len_tmp.cuda()
                     #######################################################
                     # (1) Extract text embeddings
                     ######################################################
                     hidden = text_encoder.init_hidden(batch_size)
                     # words_embs: batch_size x nef x seq_len
                     # sent_emb: batch_size x nef
-                    words_embs, sent_emb = text_encoder(captions, cap_lens, hidden)
-                    mask = (captions == 0)
+                    words_embs, sent_emb = text_encoder(caption_tmp, cap_len_tmp, None)
+                    mask = (caption_tmp == 0)
                     #######################################################
                     # (2) Generate fake images
                     ######################################################
                     noise.data.normal_(0, 1)
-                    fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask)
+                    fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask, caption_tmp, cap_len_tmp)
                     # G attention
-                    cap_lens_np = cap_lens.cpu().data.numpy()
+                    # cap_lens_np = cap_lens.cpu().data.numpy()
+                    cap_lens_np = cap_len_tmp.cpu().data.numpy()
                     for j in range(batch_size):
-                        save_name = '%s/%d_s_%d' % (save_dir, i, sorted_indices[j])
+                        save_name = '%s/s_%d' % (save_dir, sorted_indices[i*batch_size+j])
                         for k in range(len(fake_imgs)):
                             im = fake_imgs[k][j].data.cpu().numpy()
                             im = (im + 1.0) * 127.5
@@ -592,8 +606,8 @@ class condGANTrainer(object):
                             att_sze = attn_maps.size(2)
                             img_set, sentences = \
                                 build_super_images2(im[j].unsqueeze(0),
-                                                    captions[j].unsqueeze(0),
-                                                    [cap_lens_np[j]], self.ixtoword,
+                                                    caption_tmp[j].unsqueeze(0),
+                                                    [cap_len_tmp[j]], self.ixtoword,
                                                     [attn_maps[j]], att_sze)
                             if img_set is not None:
                                 im = Image.fromarray(img_set)
