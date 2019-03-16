@@ -202,7 +202,7 @@ class condGANTrainer(object):
                 im = Image.fromarray(img_set)
                 fullpath = '%s/G_%s_%d_%d.png'\
                     % (self.image_dir, name, gen_iterations, i)
-                im.save(fullpath)
+                im.save(fullpath)            
 
         # for i in range(len(netsD)):
         i = -1
@@ -596,6 +596,11 @@ class condGANTrainer(object):
                             im = Image.fromarray(im)
                             fullpath = '%s_g%d.png' % (save_name, k)
                             im.save(fullpath)
+                            # save to seperate directory                            
+                            save_dir2 = '%s/stage_%d' % (save_dir, k)
+                            mkdir_p(save_dir2)
+                            fullpath = '%s/%d_g%d.png' % (save_dir2, sorted_indices[i*batch_size+j], k)
+                            im.save(fullpath)
 
                         for k in range(len(attention_maps)):
                             if len(fake_imgs) > 1:
@@ -612,4 +617,4 @@ class condGANTrainer(object):
                             if img_set is not None:
                                 im = Image.fromarray(img_set)
                                 fullpath = '%s_a%d.png' % (save_name, k)
-                                im.save(fullpath)
+                                im.save(fullpath)                            

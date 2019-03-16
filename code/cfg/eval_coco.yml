@@ -12,10 +12,10 @@ TREE:
 
 TRAIN:
     FLAG: False
-    NET_G: '../output/scene_glu-gan2-4-5-10-5_2019_03_07_12_06_26/Model/netG_epoch_10.pth'
+    NET_G: '../output/scene_glu-gan-1-1-1-5_2019_03_09_08_36_24/Model/netG_epoch_5.pth'
     B_NET_D: False
     BATCH_SIZE: 10
-    NET_E: '../output/scene_DAMSM_2019_02_17_10_55_29/Model/text_encoder100.pth'
+    NET_E: '../output/scene_DAMSM-4-5-10_2019_03_05_07_10_15/Model/text_encoder100.pth'
 
 
 GAN:

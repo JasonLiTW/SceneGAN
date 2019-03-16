@@ -8,6 +8,7 @@ import pandas as pd
 import re
 import csv
 import os
+import piexif
 from PIL import Image
 from collections import defaultdict
 from datasets import TextDataset
@@ -265,39 +266,39 @@ def preprocess_openimage(confidence):
     print("=========================Main thread Waiting=========================")
 
 def get_keyword_imgs(keywords, num_pictures):    
-    def job(q, df, num_pictures, order):
-        with open('../data/machine-merge.pickle', 'rb') as f:
-            data = pickle.load(f)
-            keys = list(data.keys())
-        while not q.empty():
-            word1, word2 = q.get()
-            print('Thread %d Start download imgs for word1: %s and word2: %s\nLeave q size: %d' % (order, word1, word2, q.qsize()))
-            data_train_dir = '../data/OpenImage/train/' + word1 + '_' + word2
-            data_val_dir = '../data/OpenImage/val/' + word1 + '_' + word2
-            count = 1
-            if not os.path.exists(data_train_dir):
-                os.makedirs(data_train_dir)
-            if not os.path.exists(data_val_dir):
-                os.makedirs(data_val_dir)
-            for key in keys:
-                if count == num_pictures:
-                    break
-                if word1 in data[key] and word2 in data[key] and 'people' not in data[key] and \
-                    'man' not in data[key] and 'woman' not in data[key]:
-                    if count % 100 == 0:
-                        print('Thread %d download %d imgs for word1: %s and word2: %s' % (order, count, word1, word2))
-                    if np.random.random() > 0.1:
-                        url = df[df['ImageID'] == key]['OriginalURL'].values[0]
-                        get_img_by_url(data_train_dir, key, url)
-                    elif np.random.random() <= 0.1:
-                        url = df[df['ImageID'] == key]['OriginalURL'].values[0]
-                        get_img_by_url(data_val_dir, key, url)
-                    count += 1
+    # def job(q, df, num_pictures, order):
+    #     with open('../../AttnGAN_scene/data/machine-merge.pickle', 'rb') as f:
+    #         data = pickle.load(f)
+    #         keys = list(data.keys())
+    #     while not q.empty():
+    #         word1, word2 = q.get()
+    #         print('Thread %d Start download imgs for word1: %s and word2: %s\nLeave q size: %d' % (order, word1, word2, q.qsize()))
+    #         data_train_dir = '../../AttnGAN_scene/data/OpenImage/train/' + word1 + '_' + word2
+    #         data_val_dir = '../../AttnGAN_scene/data/OpenImage/val/' + word1 + '_' + word2
+    #         count = 1
+    #         if not os.path.exists(data_train_dir):
+    #             os.makedirs(data_train_dir)
+    #         if not os.path.exists(data_val_dir):
+    #             os.makedirs(data_val_dir)
+    #         for key in keys:
+    #             if count == num_pictures or count >= len(keys):
+    #                 break
+    #             if word1 in data[key] and word2 in data[key] and 'people' not in data[key] and \
+    #                 'man' not in data[key] and 'woman' not in data[key]:
+    #                 if count % 100 == 0:
+    #                     print('Thread %d download %d imgs for word1: %s and word2: %s' % (order, count, word1, word2))
+    #                 if np.random.random() > 0.0:
+    #                     url = df[df['ImageID'] == key]['OriginalURL'].values[0]
+    #                     get_img_by_url(data_train_dir, key, url)
+    #                 elif np.random.random() <= 0.1:
+    #                     url = df[df['ImageID'] == key]['OriginalURL'].values[0]
+    #                     get_img_by_url(data_val_dir, key, url)
+    #                 count += 1
                 
-            print('Thread %d Finished download imgs for word1: %s and word2: %s' % (order, word1, word2))
+    #         print('Thread %d Finished download imgs for word1: %s and word2: %s' % (order, word1, word2))
     def clean_null_img(keywords, split):
         for keyword in keywords:
-            data_dir = '../data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
+            data_dir = '../../AttnGAN_scene/data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
             filenames = os.listdir(data_dir)
             for filename in filenames:
                 file_path = data_dir+'/'+filename
@@ -306,7 +307,7 @@ def get_keyword_imgs(keywords, num_pictures):
                         os.remove(file_path)
     def resize(keywords, split):
         for index, keyword in enumerate(keywords):
-            data_dir = '../data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
+            data_dir = '../../AttnGAN_scene/data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
             print("Start %s split %d" % (split, index))
             new_dir = data_dir+'/resize/'
             if not os.path.exists(new_dir):
@@ -316,26 +317,29 @@ def get_keyword_imgs(keywords, num_pictures):
                 if filename == 'resize':
                     continue
                 file_path = data_dir+'/'+filename                
-                piexif.remove(file_path)
-                image = Image.open(file_path)
-                image = resize_image(image, 256)
-                image.save(new_dir+filename)
-    # df = pd.read_csv('../data/OpenImage/image_ids_and_rotation.csv')
+                try:
+                    piexif.remove(file_path)
+                    image = Image.open(file_path)
+                    image = resize_image(image, 256)
+                    image.save(new_dir+filename)
+                except:
+                    continue
+    # df = pd.read_csv('../../AttnGAN_scene/data/OpenImage/image_ids_and_rotation.csv')
     # q = Queue()
     # for list_words in keywords:
     #     q.put(list_words)
     # mps = []
-    # mp_num = 6    
+    # mp_num = 11
     # for i in range(mp_num):
     #     mps.append(mp.Process(target=job, args=(q, df, num_pictures, i+1)))
     #     mps[i].start()
     # for j in range(mp_num):
     #     mps[j].join()
-    # print("========================Start clear Null Imgs========================")
-    # clean_null_img(keywords, 'train')
-    # clean_null_img(keywords, 'test')
+    print("========================Start clear Null Imgs========================")
+    clean_null_img(keywords, 'train')
+    #clean_null_img(keywords, 'test')
     resize(keywords, 'train')
-    resize(keywords, 'test')
+    #resize(keywords, 'test')
     print("=========================Main thread Finished=========================")
     
 def preprocess_sceneImage(split):
@@ -450,7 +454,7 @@ if __name__ == '__main__':
                 ['beach', 'winter'], ['beach', 'night'], ['beach', 'morning'], ['beach', 'sunset'], ['rock', 'field'], \
                 ['fog', 'forest'], ['fog', 'morning'], ['road', 'forest'], ['road', 'mountain'], ['road', 'night'], \
                 ['road', 'morning'], ['road', 'field']]
-    num_pictures = 1000
-    # get_keyword_imgs(keywords, num_pictures)
+    num_pictures = 5000
+    get_keyword_imgs(keywords, num_pictures)
     # preprocess_openimage(1.0)
-    preprocess_sceneImage(split='test')
+    # preprocess_sceneImage(split='test')
