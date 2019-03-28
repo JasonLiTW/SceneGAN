@@ -349,7 +349,7 @@ def preprocess_sceneImage(split):
                 ['beach', 'winter'], ['beach', 'night'], ['beach', 'morning'], ['beach', 'sunset'], ['rock', 'field'], \
                 ['fog', 'forest'], ['fog', 'morning'], ['road', 'forest'], ['road', 'mountain'], ['road', 'night'], \
                 ['road', 'morning'], ['road', 'field']]
-    scene_spec = ['sand', 'mountain', 'mountain_path', 'mountain_snowy', 'beach', 'beach_house', 'butte', 'canal_urban', 'canal_natural'\
+    scene_spec = ['sand', 'mountain', 'mountain_path', 'mountain_snowy', 'beach', 'beach_house', 'butte', 'canal_urban', 'canal_natural', \
             'canyon', 'cliff', 'corn_field', 'creek', 'desert_road', 'farm', 'field_cultivated', 'field_road', 'forest_broadleaf', \
             'forest_path', 'forest_road', 'glacier', 'grotto', 'harbor', 'hayfield', 'highway', 'iceberg', 'islet', \
             'lagoon', 'ocean', 'railroad_track', 'rainforest', 'river', 'rock_arch', 'sky', 'snowfield', 'valley', \

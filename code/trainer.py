@@ -366,37 +366,7 @@ class condGANTrainer(object):
                     # self.save_img_results(netG, fixed_noise, sent_emb,
                     #                       words_embs, mask, image_encoder,
                     #                       captions, cap_lens,
-                    #                       epoch, name='current')
-                if step % 100 == 0: # 1000
-                    hidden = text_encoder.init_hidden(batch_size)
-                    # modification                    
-                    examples = [[23,2],[21,12],[6,46],[25,16],[21,3],[6,14],[3,23],[25,4],[45,0]]
-                    example_names = ['road_field', 'canal_urban', 'mountain_dessert', 'beach_morning', 'canal_forest','mountain_night','forest_road','beach_winter','islet']
-                    example_lens = [2,2,2,2,2,2,2,2,1]
-                    captions = torch.from_numpy(np.array(examples).astype(int))
-                    caption_lens = torch.from_numpy(np.array(example_lens).astype(int))
-                    if cfg.CUDA:
-                        captions = captions.cuda()
-                        caption_lens = caption_lens.cuda()
-                    words_embs, sent_emb = text_encoder(captions, caption_lens, None)                    
-                    words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
-                    mask = (captions == 0)
-                    for i in range(12):
-                        backup_para = copy_G_params(netG)
-                        load_params(netG, avg_param_G)
-                        noise.data.normal_(0, 1)
-                        # captions = np.tile(examples[i], (cfg.TRAIN.BATCH_SIZE, 1)).astype(int)                        
-                        # caption_lens = np.tile(len(examples[i]), (cfg.TRAIN.BATCH_SIZE, 1)).astype(int)
-                        # caption_lens = caption_lens.squeeze()
-                        # if cfg.CUDA:
-                        #     captions = torch.from_numpy(captions).cuda()                            
-                        #     caption_lens = torch.from_numpy(caption_lens).cuda()                    
-                                            
-                        mask = (captions == 0)
-                        self.save_img_results2(netG, noise, sent_emb,
-                                            words_embs, mask, image_encoder,
-                                            captions, caption_lens, epoch, step, name='order_'+str(i+1))
-                        load_params(netG, backup_para)
+                    #                       epoch, name='current')                
             end_t = time.time()
 
             print('''[%d/%d][%d]
