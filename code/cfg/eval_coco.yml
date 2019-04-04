@@ -2,7 +2,7 @@ CONFIG_NAME: 'scene4-5-10-5'
 
 DATASET_NAME: 'scene'
 DATA_DIR: '../data/OpenImage'
-GPU_ID: 3
+GPU_ID: 1
 WORKERS: 1
 
 B_VALIDATION: False
@@ -12,9 +12,9 @@ TREE:
 
 TRAIN:
     FLAG: False
-    NET_G: '../output/scene_glu-gan-1-1-1-5_2019_03_09_08_36_24/Model/netG_epoch_5.pth'
+    NET_G: '../output/scene_glu-gan-1-1-1-5_2019_03_09_08_36_24/Model/netG_epoch_15.pth'
     B_NET_D: False
-    BATCH_SIZE: 10
+    BATCH_SIZE: 16
     NET_E: '../output/scene_DAMSM-4-5-10_2019_03_05_07_10_15/Model/text_encoder100.pth'
 
 

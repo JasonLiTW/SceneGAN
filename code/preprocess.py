@@ -446,6 +446,60 @@ def resize_image(image, size=256):
     image = image.crop((x, y, x+size, y+size))
     
     return image
+def produce_example_captions(each_captions):
+    keywords = ['forest_morning', 'forest_winter', 'forest_night', 'forest_autumn', \
+                'canal_morning', 'canal_night', 'canal_autumn', 'canal_winter', 'farm_morning', 'mountain_morning',\
+                'mountain_night', 'mountain_cloud', 'mountain_sea', 'mountain_ocean', 'mountain_desert', \
+                'beach_winter', 'beach_night', 'beach_morning', 'beach_sunset', 'rock_field', \
+                'fog_forest', 'fog_morning', 'road_forest', 'road_mountain', 'road_night', \
+                'road_morning', 'road_field']
+    scene_spec = ['sand', 'mountain', 'mountain_path', 'mountain_snowy', 'beach', 'beach_house', 'butte', 'canal_urban', 'canal_natural', \
+            'canyon', 'cliff', 'corn_field', 'creek', 'desert_road', 'farm', 'field_cultivated', 'field_road', 'forest_broadleaf', \
+            'forest_path', 'forest_road', 'glacier', 'grotto', 'harbor', 'hayfield', 'highway', 'iceberg', 'islet', \
+            'lagoon', 'ocean', 'railroad_track', 'rainforest', 'river', 'rock_arch', 'sky', 'snowfield', 'valley', \
+            'waterfall', 'coast']
+    with open('../data/OpenImage/example_captions2.txt', 'w') as f:
+        mapping = {}
+        mapping_flip = {}
+        cap_lists = []
+        index = 0
+        for cap in keywords:
+            cap = cap.replace('_', ' ')
+            if len(cap.split(' ')) == 1:
+                continue
+            cap_lists.append(cap)
+        for cap in scene_spec:
+            cap = cap.replace('_', ' ')
+            if len(cap.split(' ')) == 1:
+                continue
+            cap_lists.append(cap)
+        for cap in cap_lists:
+            for _ in range(each_captions):
+                f.write(cap+'\n')
+        # for cap in keywords:
+        #     cap = cap.replace('_', ' ')
+        #     if len(cap.split(' ')) == 1:
+        #         continue
+        #     mapping[cap] = index
+        #     index += 1
+        # for cap in scene_spec:
+        #     cap = cap.replace('_', ' ')
+        #     if len(cap.split(' ')) == 1:
+        #         continue
+        #     mapping[cap] = index
+        #     index += 1
+        # caption_lists = []
+        # for key in mapping.keys():
+        #     mapping_flip[mapping[key]] =  key
+        # for key in mapping.keys():
+        #     for _ in range(each_captions):
+        #         caption_lists.append(mapping[key])
+        # np.random.shuffle(caption_lists)
+        # str_lists = []
+        # for id in caption_lists:
+        #     str_lists.append(mapping_flip[id])
+        # for string in str_lists:
+        #     f.write(string+'\n')
 if __name__ == '__main__':
     print("====Start Preprocess Dataset Script!====")
     keywords = [['forest', 'morning'], ['forest', 'winter'], ['forest', 'night'], ['forest', 'autumn'], \
@@ -455,6 +509,7 @@ if __name__ == '__main__':
                 ['fog', 'forest'], ['fog', 'morning'], ['road', 'forest'], ['road', 'mountain'], ['road', 'night'], \
                 ['road', 'morning'], ['road', 'field']]
     num_pictures = 5000
-    get_keyword_imgs(keywords, num_pictures)
+    #get_keyword_imgs(keywords, num_pictures)
     # preprocess_openimage(1.0)
     # preprocess_sceneImage(split='test')
+    produce_example_captions(16)

@@ -488,7 +488,7 @@ class condGANTrainer(object):
             print('Error: the path for morels is not found!')
         else:
             # Build and load the generator
-            batch_size = 10
+            batch_size = 16
             text_encoder = \
                 RNN_ENCODER(self.n_words, nhidden=cfg.TEXT.EMBEDDING_DIM)
             print("=======self.n_words: %d", self.n_words)
@@ -500,7 +500,7 @@ class condGANTrainer(object):
             for name, param in state_dict.items():
                 if name not in own_state:
                     continue
-            own_state[name] = param
+                own_state[name] = param
             print('Load text encoder from:', cfg.TRAIN.NET_E)
             text_encoder = text_encoder.cuda()
             text_encoder.eval()
@@ -531,60 +531,64 @@ class condGANTrainer(object):
 
                 # captions = captions.cuda()
                 # cap_lens = cap_lens.cuda()
-                for i in range(total_time):  # 16
-                    noise = Variable(torch.FloatTensor(batch_size, nz), volatile=True)
-                    noise = noise.cuda()
-                    caption_tmp = Variable(torch.from_numpy(captions[i*batch_size:(i+1)*batch_size]), volatile=True)
-                    cap_len_tmp = Variable(torch.from_numpy(cap_lens[i*batch_size:(i+1)*batch_size]), volatile=True)
-                    caption_tmp = caption_tmp.cuda()
-                    cap_len_tmp = cap_len_tmp.cuda()
-                    #######################################################
-                    # (1) Extract text embeddings
-                    ######################################################
-                    hidden = text_encoder.init_hidden(batch_size)
-                    # words_embs: batch_size x nef x seq_len
-                    # sent_emb: batch_size x nef
-                    words_embs, sent_emb = text_encoder(caption_tmp, cap_len_tmp, None)
-                    mask = (caption_tmp == 0)
-                    #######################################################
-                    # (2) Generate fake images
-                    ######################################################
-                    noise.data.normal_(0, 1)
-                    fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask, caption_tmp, cap_len_tmp)
-                    # G attention
-                    # cap_lens_np = cap_lens.cpu().data.numpy()
-                    cap_lens_np = cap_len_tmp.cpu().data.numpy()
-                    for j in range(batch_size):
-                        save_name = '%s/s_%d' % (save_dir, sorted_indices[i*batch_size+j])
-                        for k in range(len(fake_imgs)):
-                            im = fake_imgs[k][j].data.cpu().numpy()
-                            im = (im + 1.0) * 127.5
-                            im = im.astype(np.uint8)
-                            # print('im', im.shape)
-                            im = np.transpose(im, (1, 2, 0))
-                            # print('im', im.shape)
-                            im = Image.fromarray(im)
-                            fullpath = '%s_g%d.png' % (save_name, k)
-                            im.save(fullpath)
-                            # save to seperate directory                            
-                            save_dir2 = '%s/stage_%d' % (save_dir, k)
-                            mkdir_p(save_dir2)
-                            fullpath = '%s/%d_g%d.png' % (save_dir2, sorted_indices[i*batch_size+j], k)
-                            im.save(fullpath)
+                with torch.no_grad():
+                    for i in range(total_time):  # 16
+                        noise = Variable(torch.FloatTensor(batch_size, nz))
+                        noise = noise.cuda()
+                        caption_tmp = Variable(torch.from_numpy(captions[i*batch_size:(i+1)*batch_size]))
+                        if i < 3:
+                            print(caption_tmp.data)
+                        cap_len_tmp = Variable(torch.from_numpy(cap_lens[i*batch_size:(i+1)*batch_size]))
+                        caption_tmp = caption_tmp.cuda()
+                        cap_len_tmp = cap_len_tmp.cuda()
+                        #######################################################
+                        # (1) Extract text embeddings
+                        ######################################################
+                        hidden = text_encoder.init_hidden(batch_size)
+                        # words_embs: batch_size x nef x seq_len
+                        # sent_emb: batch_size x nef
+                        words_embs, sent_emb = text_encoder(caption_tmp, cap_len_tmp, None)
+                        words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
+                        mask = (caption_tmp == 0)
+                        #######################################################
+                        # (2) Generate fake images
+                        ######################################################
+                        noise.data.normal_(0, 1)                    
+                        fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask, caption_tmp, cap_len_tmp)                    
+                        # G attention
+                        # cap_lens_np = cap_lens.cpu().data.numpy()
+                        cap_lens_np = cap_len_tmp.cpu().data.numpy()
+                        for j in range(batch_size):
+                            save_name = '%s/s_%d' % (save_dir, sorted_indices[i*batch_size+j])
+                            for k in range(len(fake_imgs)):
+                                im = fake_imgs[k][j].data.cpu().numpy()
+                                im = ((im + 1.0) / 2)* 255.0
+                                im = im.astype(np.uint8)
+                                # print('im', im.shape)
+                                im = np.transpose(im, (1, 2, 0))
+                                # print('im', im.shape)
+                                im = Image.fromarray(im)
+                                fullpath = '%s_g%d.png' % (save_name, k)
+                                im.save(fullpath)
+                                # save to seperate directory                            
+                                save_dir2 = '%s/stage_%d' % (save_dir, k)
+                                mkdir_p(save_dir2)
+                                fullpath = '%s/%d_g%d.png' % (save_dir2, sorted_indices[i*batch_size+j], k)
+                                im.save(fullpath)
 
-                        for k in range(len(attention_maps)):
-                            if len(fake_imgs) > 1:
-                                im = fake_imgs[k + 1].detach().cpu()
-                            else:
-                                im = fake_imgs[0].detach().cpu()
-                            attn_maps = attention_maps[k]
-                            att_sze = attn_maps.size(2)
-                            img_set, sentences = \
-                                build_super_images2(im[j].unsqueeze(0),
-                                                    caption_tmp[j].unsqueeze(0),
-                                                    [cap_len_tmp[j]], self.ixtoword,
-                                                    [attn_maps[j]], att_sze)
-                            if img_set is not None:
-                                im = Image.fromarray(img_set)
-                                fullpath = '%s_a%d.png' % (save_name, k)
-                                im.save(fullpath)                            
+                            for k in range(len(attention_maps)):
+                                if len(fake_imgs) > 1:
+                                    im = fake_imgs[k + 1].detach().cpu()
+                                else:
+                                    im = fake_imgs[0].detach().cpu()
+                                attn_maps = attention_maps[k]
+                                att_sze = attn_maps.size(2)
+                                img_set, sentences = \
+                                    build_super_images2(im[j].unsqueeze(0),
+                                                        caption_tmp[j].unsqueeze(0),
+                                                        [cap_len_tmp[j]], self.ixtoword,
+                                                        [attn_maps[j]], att_sze)
+                                if img_set is not None:
+                                    im = Image.fromarray(img_set)
+                                    fullpath = '%s_a%d.png' % (save_name, k)
+                                    im.save(fullpath)                            

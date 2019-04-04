@@ -72,7 +72,7 @@ def gen_example(wordtoix, algo):
                     cap_lens.append(len(rev))
             max_len = np.max(cap_lens)
 
-            sorted_indices = np.argsort(cap_lens)[::-1]
+            sorted_indices = np.arange(len(cap_lens))# np.argsort(cap_lens)[::-1]
             cap_lens = np.asarray(cap_lens)
             cap_lens = cap_lens[sorted_indices]
             cap_array = np.zeros((len(captions), max_len), dtype='int64')
