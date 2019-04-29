@@ -1,4 +1,4 @@
-CONFIG_NAME: 'scene_glu-gan-1-1-1-5-lr5e-5RNUM3'
+CONFIG_NAME: 'develop-1-1-1-5-lr2e-4-lr5e-5-RNUM1-closs'
 
 DATASET_NAME: 'scene'
 DATA_DIR: '../data/OpenImage'
@@ -14,7 +14,7 @@ TRAIN:
     FLAG: True
     NET_G: ''  # '../models/coco_AttnGAN2.pth'
     B_NET_D: True
-    BATCH_SIZE: 9  # 32 # 14 out of memory
+    BATCH_SIZE: 14  # 32 # 14 out of memory
     MAX_EPOCH: 600 # 120
     SNAPSHOT_INTERVAL: 5
     DISCRIMINATOR_LR: 0.00005
@@ -32,7 +32,7 @@ GAN:
     DF_DIM: 96
     GF_DIM: 48
     Z_DIM: 100
-    R_NUM: 3
+    R_NUM: 1
 
 TEXT:
     EMBEDDING_DIM: 256

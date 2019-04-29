@@ -25,7 +25,10 @@ import torch.nn as nn
 def conv1x1(in_planes, out_planes):
     "1x1 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=1,
-                     padding=0, bias=False)
+                    padding=0, bias=False)
+def conv3x3(in_planes, out_planes):
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=1,
+                    padding=0, bias=False)
 
 
 def func_attention(query, context, gamma1):

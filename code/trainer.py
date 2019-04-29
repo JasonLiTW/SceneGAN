@@ -18,6 +18,7 @@ from datasets import prepare_data
 from model import RNN_ENCODER, CNN_ENCODER
 
 from miscc.losses import words_loss
+from miscc.losses import cell_loss
 from miscc.losses import discriminator_loss, generator_loss, KL_loss
 import os
 import time
@@ -185,7 +186,7 @@ class condGANTrainer(object):
                          image_encoder, captions, cap_lens,
                          gen_iterations, name='current'):
         # Save images
-        fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask, captions, cap_lens)
+        fake_imgs, attention_maps, _, _, _ = netG(noise, sent_emb, words_embs, mask, captions, cap_lens)
         for i in range(len(attention_maps)):
             if len(fake_imgs) > 1:
                 img = fake_imgs[i + 1].detach().cpu()
@@ -225,7 +226,7 @@ class condGANTrainer(object):
                          image_encoder, captions, cap_lens,
                          epoch, step, name='current'):
         # Save images
-        fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask, captions, cap_lens)
+        fake_imgs, attention_maps, _, _, _ = netG(noise, sent_emb, words_embs, mask, captions, cap_lens)
         for i in range(len(attention_maps)):
             if len(fake_imgs) > 1:
                 img = fake_imgs[i + 1].detach().cpu()
@@ -301,7 +302,7 @@ class condGANTrainer(object):
                 hidden = text_encoder.init_hidden(batch_size)
                 # words_embs: batch_size x nef x seq_len
                 # sent_emb: batch_size x nef
-                words_embs, sent_emb = text_encoder(captions, cap_lens, None)
+                words_embs, sent_emb, _ = text_encoder(captions, cap_lens, None) # first cell_hidden is initial with zero
                 words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
                 mask = (captions == 0)
                 num_words = words_embs.size(2)
@@ -313,7 +314,7 @@ class condGANTrainer(object):
                 # (2) Generate fake images
                 ######################################################
                 noise.data.normal_(0, 1)
-                fake_imgs, _, mu, logvar = netG(noise, sent_emb, words_embs, mask, captions, cap_lens)
+                fake_imgs, _, mu, logvar, hiddens = netG(noise, sent_emb, words_embs, mask, captions, cap_lens)
 
                 #######################################################
                 # (3) Update D network
@@ -342,7 +343,7 @@ class condGANTrainer(object):
                 netG.zero_grad()
                 errG_total, G_logs = \
                     generator_loss(netsD, image_encoder, fake_imgs, real_labels,
-                                   words_embs, sent_emb, match_labels, cap_lens, class_ids)
+                                   words_embs, sent_emb, match_labels, cap_lens, class_ids, hiddens)
                 kl_loss = KL_loss(mu, logvar)
                 errG_total += kl_loss
                 G_logs += 'kl_loss: %.2f ' % kl_loss.data.item()
@@ -547,14 +548,14 @@ class condGANTrainer(object):
                         hidden = text_encoder.init_hidden(batch_size)
                         # words_embs: batch_size x nef x seq_len
                         # sent_emb: batch_size x nef
-                        words_embs, sent_emb = text_encoder(caption_tmp, cap_len_tmp, None)
+                        words_embs, sent_emb, _ = text_encoder(caption_tmp, cap_len_tmp, None)
                         words_embs, sent_emb = words_embs.detach(), sent_emb.detach()
                         mask = (caption_tmp == 0)
                         #######################################################
                         # (2) Generate fake images
                         ######################################################
                         noise.data.normal_(0, 1)                    
-                        fake_imgs, attention_maps, _, _ = netG(noise, sent_emb, words_embs, mask, caption_tmp, cap_len_tmp)                    
+                        fake_imgs, attention_maps, _, _, _ = netG(noise, sent_emb, words_embs, mask, caption_tmp, cap_len_tmp)                    
                         # G attention
                         # cap_lens_np = cap_lens.cpu().data.numpy()
                         cap_lens_np = cap_len_tmp.cpu().data.numpy()

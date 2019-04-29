@@ -16,6 +16,78 @@ def cosine_similarity(x1, x2, dim=1, eps=1e-8):
     w2 = torch.norm(x2, 2, dim)
     return (w12 / (w1 * w2).clamp(min=eps)).squeeze()
 
+def cell_loss(cell_code, words_emb, sent_emb, labels, class_ids,
+                cap_lens, eps=1e-8):
+    similarities = []
+    masks = []
+    cell_code = cell_code[1] # use cell memory [2, 16, 128]    
+    batch_size = words_emb.size(0)
+    queryL = words_emb.size(2)
+    nef = words_emb.size(1)    
+    nhidden = cell_code.size(2)
+    cap_lens = cap_lens.data.tolist()    
+    # sent_emb [batch_size, 256]
+
+    for i in range(batch_size):
+        if class_ids is not None:
+            mask = (class_ids == class_ids[i]).astype(np.uint8)
+            mask[i] = 0
+            masks.append(mask.reshape((1, -1)))
+        # Get the i-th text description
+        words_num = cap_lens[i]
+        # -> 1 x nef x words_num
+        word = words_emb[i, :, :words_num].unsqueeze(0).contiguous()
+        # -> batch_size x nef x words_num
+        word = word.repeat(batch_size, 1, 1)
+        # direction*layer x batch x nhidden => batch x nhidden
+        
+        # cell_code[0] chooese one direction cell memory
+        context = cell_code[0].unsqueeze(2).repeat(1, 1, words_num)
+        """
+            word(query): batch x nef x words_num   (word_embs)
+            context: batch x nhidden x words_num   (rnn nhidden)
+        """
+        word = word.transpose(1,2).contiguous() # [batch, words_num, nef]
+        bmm = torch.bmm(context, word) # [batch, nhidden, nef]        
+        sent_copy = sent_emb.unsqueeze(2).transpose(1,2).contiguous() # [batch, 1, nef]        
+        sent_copy = sent_copy.repeat(1, nhidden, 1) # [batch, nhidden ,nef]
+        bmm = bmm.view(batch_size*nhidden, nef) # batch*nhidden x nef
+        sent_copy = sent_copy.view(batch_size*nhidden, nef) # batch*nhidden x nef
+        row_sim = cosine_similarity(bmm, sent_copy)
+        # --> batch_size * nhidden
+        row_sim = row_sim.view(batch_size, nhidden)
+        # --> batch_size x nhidden
+
+        # Eq. (10)
+        GAMMA4 = 1
+        row_sim.mul_(GAMMA4).exp_()
+        row_sim = row_sim.sum(dim=1, keepdim=True)
+        row_sim = torch.log(row_sim)
+
+        # --> 1 x batch_size
+        # similarities(i, j): the similarity between the i-th cell_hidden and the j-th text description
+        similarities.append(row_sim) # size() = [batch, 1] all i-th cell_hidden to specific text description
+    similarities = torch.cat(similarities, 1) #
+    if class_ids is not None:
+        masks = np.concatenate(masks, 0)
+        # masks: batch_size x batch_size
+        masks = torch.ByteTensor(masks)
+        if cfg.CUDA:
+            masks = masks.cuda()
+
+    similarities = similarities * GAMMA4
+    if class_ids is not None:
+        similarities.data.masked_fill_(masks, -float('inf'))    
+    if labels is not None:
+        loss = nn.CrossEntropyLoss()(similarities, labels)
+        
+    else:
+        loss = None
+    
+    return loss
+    
+
+    
 
 def sent_loss(cnn_code, rnn_code, labels, class_ids,
               batch_size, eps=1e-8):
@@ -163,7 +235,7 @@ def discriminator_loss(netD, real_imgs, fake_imgs, conditions,
 
 def generator_loss(netsD, image_encoder, fake_imgs, real_labels,
                    words_embs, sent_emb, match_labels,
-                   cap_lens, class_ids):
+                   cap_lens, class_ids, hiddens):
     numDs = len(netsD)
     batch_size = real_labels.size(0)
     logs = ''
@@ -184,7 +256,17 @@ def generator_loss(netsD, image_encoder, fake_imgs, real_labels,
         logs += 'g_loss%d: %.2f ' % (i, g_loss.data.item())
 
         # Ranking loss
+        if i == 1:
+            c_loss_1 = 0.0
+            c_loss_1 = cell_loss(hiddens[0], words_embs, sent_emb, match_labels,
+                                class_ids, cap_lens)
+            # hidden[0] is cell hidden state, hidden[1] is cell memory
+        if i == 2:
+            c_loss_2 = 0.0
+            c_loss_2 = cell_loss(hiddens[1], words_embs, sent_emb, match_labels,
+                                class_ids, cap_lens)
         if i == (numDs - 1):
+            c_loss = c_loss_1 + c_loss_2
             # words_features: batch_size x nef x 17 x 17
             # sent_code: batch_size x nef
             region_features, cnn_code = image_encoder(fake_imgs[i])
@@ -200,9 +282,10 @@ def generator_loss(netsD, image_encoder, fake_imgs, real_labels,
             s_loss = (s_loss0 + s_loss1) * \
                 cfg.TRAIN.SMOOTH.LAMBDA
             # err_sent = err_sent + s_loss.data[0]
+            
 
-            errG_total += w_loss + s_loss
-            logs += 'w_loss: %.2f s_loss: %.2f ' % (w_loss.data.item(), s_loss.data.item())
+            errG_total += w_loss + s_loss + c_loss
+            logs += 'w_loss: %.2f s_loss: %.2f c_loss: %.2f' % (w_loss.data.item(), s_loss.data.item(), c_loss.data.item())
     return errG_total, logs
 
 

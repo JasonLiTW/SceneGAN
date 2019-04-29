@@ -12,7 +12,7 @@ TREE:
 
 TRAIN:
     FLAG: False
-    NET_G: '../output/scene_glu-gan-1-1-1-5_2019_03_09_08_36_24/Model/netG_epoch_15.pth'
+    NET_G: '../output/scene_develop-1-1-1-5-lr2e-4-lr5e-5-RNUM1-closs_2019_04_27_03_30_49/Model/netG_epoch_50.pth'
     B_NET_D: False
     BATCH_SIZE: 16
     NET_E: '../output/scene_DAMSM-4-5-10_2019_03_05_07_10_15/Model/text_encoder100.pth'
@@ -22,7 +22,7 @@ GAN:
     DF_DIM: 96
     GF_DIM: 48
     Z_DIM: 100
-    R_NUM: 3
+    R_NUM: 1
 
 TEXT:
     EMBEDDING_DIM: 256
