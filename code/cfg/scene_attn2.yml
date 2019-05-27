@@ -1,4 +1,4 @@
-CONFIG_NAME: 'develop-1-1-1-5-lr2e-4-lr5e-5-RNUM1-closs'
+CONFIG_NAME: 'develop-1-1-1-2-5-lr2e-4-lr5e-5-RNUM1-closs'
 
 DATASET_NAME: 'scene'
 DATA_DIR: '../data/OpenImage'
@@ -25,6 +25,7 @@ TRAIN:
         GAMMA1: 1.0  # 1,2,5 good 4 best  10&100bad
         GAMMA2: 1.0
         GAMMA3: 1.0  # 10good 1&100bad
+        GAMMA4: 2.0
         LAMBDA: 5.0 # 50 for cocodataset
 
 

@@ -58,9 +58,8 @@ def cell_loss(cell_code, words_emb, sent_emb, labels, class_ids,
         row_sim = row_sim.view(batch_size, nhidden)
         # --> batch_size x nhidden
 
-        # Eq. (10)
-        GAMMA4 = 1
-        row_sim.mul_(GAMMA4).exp_()
+        # Eq. (10)        
+        row_sim.mul_(cfg.TRAIN.SMOOTH.GAMMA4).exp_()
         row_sim = row_sim.sum(dim=1, keepdim=True)
         row_sim = torch.log(row_sim)
 
@@ -75,7 +74,7 @@ def cell_loss(cell_code, words_emb, sent_emb, labels, class_ids,
         if cfg.CUDA:
             masks = masks.cuda()
 
-    similarities = similarities * GAMMA4
+    similarities = similarities * cfg.TRAIN.SMOOTH.GAMMA4
     if class_ids is not None:
         similarities.data.masked_fill_(masks, -float('inf'))    
     if labels is not None:

@@ -12,7 +12,7 @@ TREE:
 
 TRAIN:
     FLAG: False
-    NET_G: '../output/scene_develop-1-1-1-5-lr2e-4-lr5e-5-RNUM1-closs_2019_04_27_03_30_49/Model/netG_epoch_50.pth'
+    NET_G: '../output/scene_develop-1-1-1-2-5-lr2e-4-lr5e-5-RNUM1-closs_2019_05_16_09_49_07/Model/netG_epoch_50.pth'
     B_NET_D: False
     BATCH_SIZE: 16
     NET_E: '../output/scene_DAMSM-4-5-10_2019_03_05_07_10_15/Model/text_encoder100.pth'
