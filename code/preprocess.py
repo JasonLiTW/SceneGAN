@@ -194,7 +194,7 @@ def preprocess_openimage(confidence):
         class_descriptions = pd.read_csv('../data/OpenImage/class-descriptions.csv', header=None)
         ixtolabel = {}
         for i in range(class_descriptions.shape[0]):
-            ixtolabel[class_descriptions.iloc[i][0]] = class_descriptions.iloc[i][1]
+            ixtolabel[class_descriptions.iloc[i][0]] = class_descriptions.iloc[i][1].lower()
         # print("Find Same Labels preprocessing! Strart count time!")
         # t0 = time.clock()
         # dataset = TextDataset('../data/coco', 'train', base_size=299)
@@ -266,36 +266,36 @@ def preprocess_openimage(confidence):
     print("=========================Main thread Waiting=========================")
 
 def get_keyword_imgs(keywords, num_pictures):    
-    # def job(q, df, num_pictures, order):
-    #     with open('../../AttnGAN_scene/data/machine-merge.pickle', 'rb') as f:
-    #         data = pickle.load(f)
-    #         keys = list(data.keys())
-    #     while not q.empty():
-    #         word1, word2 = q.get()
-    #         print('Thread %d Start download imgs for word1: %s and word2: %s\nLeave q size: %d' % (order, word1, word2, q.qsize()))
-    #         data_train_dir = '../../AttnGAN_scene/data/OpenImage/train/' + word1 + '_' + word2
-    #         data_val_dir = '../../AttnGAN_scene/data/OpenImage/val/' + word1 + '_' + word2
-    #         count = 1
-    #         if not os.path.exists(data_train_dir):
-    #             os.makedirs(data_train_dir)
-    #         if not os.path.exists(data_val_dir):
-    #             os.makedirs(data_val_dir)
-    #         for key in keys:
-    #             if count == num_pictures or count >= len(keys):
-    #                 break
-    #             if word1 in data[key] and word2 in data[key] and 'people' not in data[key] and \
-    #                 'man' not in data[key] and 'woman' not in data[key]:
-    #                 if count % 100 == 0:
-    #                     print('Thread %d download %d imgs for word1: %s and word2: %s' % (order, count, word1, word2))
-    #                 if np.random.random() > 0.0:
-    #                     url = df[df['ImageID'] == key]['OriginalURL'].values[0]
-    #                     get_img_by_url(data_train_dir, key, url)
-    #                 elif np.random.random() <= 0.1:
-    #                     url = df[df['ImageID'] == key]['OriginalURL'].values[0]
-    #                     get_img_by_url(data_val_dir, key, url)
-    #                 count += 1
+    def job(q, df, num_pictures, order):
+        with open('../../AttnGAN_scene/data/machine-merge.pickle', 'rb') as f:
+            data = pickle.load(f)
+            keys = list(data.keys())
+        while not q.empty():
+            word1, word2 = q.get()
+            print('Thread %d Start download imgs for word1: %s and word2: %s\nLeave q size: %d' % (order, word1, word2, q.qsize()))
+            data_train_dir = '../../AttnGAN_scene/data/OpenImage/train/' + word1 + '_' + word2
+            data_val_dir = '../../AttnGAN_scene/data/OpenImage/val/' + word1 + '_' + word2
+            count = 1
+            if not os.path.exists(data_train_dir):
+                os.makedirs(data_train_dir)
+            if not os.path.exists(data_val_dir):
+                os.makedirs(data_val_dir)
+            for key in keys:
+                if count == num_pictures or count >= len(keys):
+                    break
+                if word1 in data[key] and word2 in data[key] and 'people' not in data[key] and \
+                    'man' not in data[key] and 'woman' not in data[key]:
+                    if count % 100 == 0:
+                        print('Thread %d download %d imgs for word1: %s and word2: %s' % (order, count, word1, word2))
+                    if np.random.random() > 0.0:
+                        url = df[df['ImageID'] == key]['OriginalURL'].values[0]
+                        get_img_by_url(data_train_dir, key, url)
+                    elif np.random.random() <= 0.1:
+                        url = df[df['ImageID'] == key]['OriginalURL'].values[0]
+                        get_img_by_url(data_val_dir, key, url)
+                    count += 1
                 
-    #         print('Thread %d Finished download imgs for word1: %s and word2: %s' % (order, word1, word2))
+            print('Thread %d Finished download imgs for word1: %s and word2: %s' % (order, word1, word2))
     def clean_null_img(keywords, split):
         for keyword in keywords:
             data_dir = '../../AttnGAN_scene/data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]

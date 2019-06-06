@@ -75,15 +75,18 @@ def cell_loss(cell_code, words_emb, sent_emb, labels, class_ids,
             masks = masks.cuda()
 
     similarities = similarities * cfg.TRAIN.SMOOTH.GAMMA4
+    similarities1 = similarities.transpose(0, 1)
     if class_ids is not None:
         similarities.data.masked_fill_(masks, -float('inf'))    
     if labels is not None:
-        loss = nn.CrossEntropyLoss()(similarities, labels)
+        loss0 = nn.CrossEntropyLoss()(similarities, labels)
+        loss1 = nn.CrossEntropyLoss()(similarities1, labels)
+        return loss0 + loss1
         
     else:
-        loss = None
-    
-    return loss
+        loss0 = None
+        loss1 = None
+        return None   
     
 
     
