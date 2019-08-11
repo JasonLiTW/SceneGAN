@@ -14,7 +14,7 @@ from miscc.utils import mkdir_p
 from miscc.utils import build_super_images, build_super_images2, build_super_images3
 from miscc.utils import weights_init, load_params, copy_G_params
 from model import G_DCGAN, G_NET
-from datasets import prepare_data
+from sceneDatasets import prepare_data
 from model import RNN_ENCODER, CNN_ENCODER
 
 from miscc.losses import words_loss
@@ -23,6 +23,8 @@ from miscc.losses import discriminator_loss, generator_loss, KL_loss
 import os
 import time
 import numpy as np
+import random
+from datetime import datetime
 import sys
 
 # ################# Text to image task############################ #
@@ -484,7 +486,7 @@ class condGANTrainer(object):
                         fullpath = '%s_s%d.png' % (s_tmp, k)
                         im.save(fullpath)
 
-    def gen_example(self, data_dic):
+    def gen_example(self, data_dic):        
         if cfg.TRAIN.NET_G == '':
             print('Error: the path for morels is not found!')
         else:
@@ -554,7 +556,10 @@ class condGANTrainer(object):
                         #######################################################
                         # (2) Generate fake images
                         ######################################################
-                        noise.data.normal_(0, 1)                    
+                        random.seed(datetime.now())
+                        rnd= random.randint(0,1000)
+                        torch.cuda.manual_seed(rnd)
+                        noise.data.normal_(0, 1)                                          
                         fake_imgs, attention_maps, _, _, _ = netG(noise, sent_emb, words_embs, mask, caption_tmp, cap_len_tmp)                    
                         # G attention
                         # cap_lens_np = cap_lens.cpu().data.numpy()

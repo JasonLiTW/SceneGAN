@@ -106,7 +106,9 @@ class RNN_ENCODER(nn.Module):
                                dropout=self.drop_prob,
                                bidirectional=self.bidirectional)
             self.fc = nn.Linear(48*64*64, self.nhidden, bias=True)
+            # fc for stage2's imagination
             self.fc2 = nn.Linear(48*128*128, self.nhidden, bias=True)
+            # fc2 for stage3's imagination
         elif self.rnn_type == 'GRU':
             self.rnn = nn.GRU(self.ninput, self.nhidden,
                               self.nlayers, batch_first=True,
@@ -142,11 +144,9 @@ class RNN_ENCODER(nn.Module):
         # add by Neptune 2019/02/22 to init cell memory
         if h_code is not None:
             if h_code.size(2) == 64:
-                #print("size(2)==64", h_code.size())
                 cell_hidden = F.leaky_relu(self.fc(h_code.view(cfg.TRAIN.BATCH_SIZE, -1)), negative_slope=0.1)
                 cell_hidden = cell_hidden.unsqueeze_(0).repeat(self.nlayers*self.num_directions,1,1)
             elif h_code.size(2) == 128:
-                #print("size(2)==128", h_code.size())
                 cell_hidden = F.leaky_relu(self.fc2(h_code.view(cfg.TRAIN.BATCH_SIZE, -1)), negative_slope=0.1)
                 cell_hidden = cell_hidden.unsqueeze_(0).repeat(self.nlayers*self.num_directions,1,1)
             if cfg.CUDA:

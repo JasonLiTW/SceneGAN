@@ -1,5 +1,5 @@
 # create date 2019/1/8 NepTuNe
-# for cocodataset preprocess annotations
+# You should not use this script, unless 
 import pickle
 import json
 import time
@@ -87,103 +87,6 @@ def build_dictionary(train_captions, val_captions, train_id, val_id):
     return [train_captions_new, val_captions_new,
             ixtoword, wordtoix, len(ixtoword)]
 
-def preprocess_dog_cat():
-    train_anno_path = '../data/coco/annotations/captions_train2014.json'
-    val_anno_path = '../data/coco/annotations/captions_val2014.json'
-
-    dogs = ['dogi', 'hotdogs', 'dog', 'bulldog',
-    'sheepdog', 'doggie', 'sheepdogs', 'bulldogs', 'adog',
-    'watchdog', 'dogg', 'dogpile', 'dogs', 'lapdog', 'doggy']
-    #dogs.sort(key=len, reverse=True)
-    cats = ['pussycat', 'bobcat', 'housecat', 'cat', 'cats', 'acat']
-    #cats.sort(key=len, reverse=True)
-    target_string = dogs+cats
-    target_string.sort(key=len, reverse=True)
-
-    signal = ['']
-    train_dict = {}
-    train_id = []
-    val_dict = {}
-    val_id = []
-    counts = 0
-    with open(train_anno_path, 'r') as f:
-        train_data = json.load(f)
-        for anno in train_data['annotations']:
-            for name in target_string:
-                if anno['caption'].endswith(name) and 'hot dog' not in anno['caption'] \
-                    and 'hotdog' not in anno['caption'] and 'hotdogs' not in anno['caption'] \
-                    and 'hot-dogs' not in anno['caption']:
-                    if anno['image_id'] not in train_dict.keys():
-                        train_dict[anno['image_id']] = []
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        # print(caption)
-                        train_dict[anno['image_id']].append(caption)
-                        train_id.append(anno['image_id'])
-                    else:
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        # print(caption)
-                        train_dict[anno['image_id']].append(caption)
-                    counts += 1
-                    break
-    print("Total train sentences used: %d" % counts)
-    counts = 0
-    with open(val_anno_path, 'r') as f:
-        val_data = json.load(f)
-        for anno in val_data['annotations']:
-            for name in target_string:
-                if anno['caption'].endswith(name) and 'hot dog' not in anno['caption'] \
-                    and 'hotdog' not in anno['caption'] and 'hotdogs' not in anno['caption'] \
-                    and 'hot-dogs' not in anno['caption']:
-                    if anno['image_id'] not in val_dict.keys():
-                        val_dict[anno['image_id']] = []
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        val_dict[anno['image_id']].append(caption)
-                        val_id.append(anno['image_id'])
-                    else:
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        val_dict[anno['image_id']].append(caption)
-                    counts += 1
-    print("Total val sentences used: %d" % counts)
-    train_captions_new, val_captions_new, ixtoword, wordtoix, length = build_dictionary(train_dict, val_dict, train_id, val_id)
-    print("Total train images used: %d" % len(train_captions_new.keys()))
-    print("Total val images used: %d" % len(val_captions_new.keys()))
-    print(len(ixtoword))
-    print(len(wordtoix))
-    record_list = [train_captions_new, val_captions_new, ixtoword, wordtoix]
-    with open('../data/captions_coco.pickle', 'wb') as f:
-        pickle.dump(record_list, f, pickle.HIGHEST_PROTOCOL)
-
-    # create train and val filenames pickle file and each image sentence numbers
-    filenames = []
-    counts = []
-    for image_id in train_id:
-        length = 12
-        counts.append(len(train_captions_new[image_id]))
-        idx = '0'*(length-len(str(image_id)))+str(image_id)
-        filenames.append('COCO_train2014_'+idx)
-        
-
-    with open('../data/train_filenames.pickle', 'wb') as f:
-        pickle.dump(filenames, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/train/dict_ids.pickle', 'wb') as f:
-        pickle.dump(train_id, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/train/sentences.pickle', 'wb') as f:
-        pickle.dump(counts, f, pickle.HIGHEST_PROTOCOL)
-
-    filenames = []
-    counts = []
-    for image_id in val_id:
-        length = 12
-        counts.append(len(val_captions_new[image_id]))
-        idx = '0'*(length-len(str(image_id)))+str(image_id)
-        filenames.append('COCO_val2014_'+idx)
-    with open('../data/val_filenames.pickle', 'wb') as f:
-        pickle.dump(filenames, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/test/dict_ids.pickle', 'wb') as f:
-        pickle.dump(val_id, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/test/sentences.pickle', 'wb') as f:
-        pickle.dump(counts, f, pickle.HIGHEST_PROTOCOL)
-
 def preprocess_openimage(confidence): 
     # preprocess original OpenImage Dataset annotation file
 
@@ -195,24 +98,24 @@ def preprocess_openimage(confidence):
         ixtolabel = {}
         for i in range(class_descriptions.shape[0]):
             ixtolabel[class_descriptions.iloc[i][0]] = class_descriptions.iloc[i][1].lower()
-        # print("Find Same Labels preprocessing! Strart count time!")
-        # t0 = time.clock()
-        # dataset = TextDataset('../data/coco', 'train', base_size=299)
-        # wordtoix = dataset.wordtoix
-        # df_labels = pd.read_csv('../data/OpenImage/class-descriptions.csv', header=None)
-        # labels = {}
-        # id_labels = {}
-        # for i in range(df_labels.shape[0]):
-        #     labels[df_labels.iloc[i][1].lower()] = df_labels.iloc[i][0]
-        #     id_labels[df_labels.iloc[i][0]] = df_labels.iloc[i][1].lower()
-        # #print(labels.keys())
-        # same_labels = []
-        # counts = 0
-        # for key in list(labels.keys()):
-        #     if key in wordtoix:
-        #         same_labels.append(key)
-        #         counts += 1
-        # print(counts)
+        print("Find Same Labels preprocessing! Strart count time!")
+        t0 = time.clock()
+        dataset = TextDataset('../data/coco', 'train', base_size=299)
+        wordtoix = dataset.wordtoix
+        df_labels = pd.read_csv('../data/OpenImage/class-descriptions.csv', header=None)
+        labels = {}
+        id_labels = {}
+        for i in range(df_labels.shape[0]):
+            labels[df_labels.iloc[i][1].lower()] = df_labels.iloc[i][0]
+            id_labels[df_labels.iloc[i][0]] = df_labels.iloc[i][1].lower()
+        #print(labels.keys())
+        same_labels = []
+        counts = 0
+        for key in list(labels.keys()):
+            if key in wordtoix:
+                same_labels.append(key)
+                counts += 1
+        print(counts)
         machine_label_path = 'train-annotations-machine-imagelabels.csv'
         # del df_labels
         df_machine_labels = pd.read_csv('../data/OpenImage/'+machine_label_path)
@@ -324,17 +227,17 @@ def get_keyword_imgs(keywords, num_pictures):
                     image.save(new_dir+filename)
                 except:
                     continue
-    # df = pd.read_csv('../../AttnGAN_scene/data/OpenImage/image_ids_and_rotation.csv')
-    # q = Queue()
-    # for list_words in keywords:
-    #     q.put(list_words)
-    # mps = []
-    # mp_num = 11
-    # for i in range(mp_num):
-    #     mps.append(mp.Process(target=job, args=(q, df, num_pictures, i+1)))
-    #     mps[i].start()
-    # for j in range(mp_num):
-    #     mps[j].join()
+    df = pd.read_csv('../../AttnGAN_scene/data/OpenImage/image_ids_and_rotation.csv')
+    q = Queue()
+    for list_words in keywords:
+        q.put(list_words)
+    mps = []
+    mp_num = 11
+    for i in range(mp_num):
+        mps.append(mp.Process(target=job, args=(q, df, num_pictures, i+1)))
+        mps[i].start()
+    for j in range(mp_num):
+        mps[j].join()
     print("========================Start clear Null Imgs========================")
     clean_null_img(keywords, 'train')
     #clean_null_img(keywords, 'test')
@@ -447,6 +350,7 @@ def resize_image(image, size=256):
     
     return image
 def produce_example_captions(each_captions):
+    # produce only training description combinations
     keywords = ['forest_morning', 'forest_winter', 'forest_night', 'forest_autumn', \
                 'canal_morning', 'canal_night', 'canal_autumn', 'canal_winter', 'farm_morning', 'mountain_morning',\
                 'mountain_night', 'mountain_cloud', 'mountain_sea', 'mountain_ocean', 'mountain_desert', \
@@ -458,7 +362,7 @@ def produce_example_captions(each_captions):
             'forest_path', 'forest_road', 'glacier', 'grotto', 'harbor', 'hayfield', 'highway', 'iceberg', 'islet', \
             'lagoon', 'ocean', 'railroad_track', 'rainforest', 'river', 'rock_arch', 'sky', 'snowfield', 'valley', \
             'waterfall', 'coast']
-    with open('../data/OpenImage/example_captions2.txt', 'w') as f:
+    with open('../data/OpenImage/example_captions.txt', 'w') as f:
         mapping = {}
         mapping_flip = {}
         cap_lists = []
@@ -500,6 +404,29 @@ def produce_example_captions(each_captions):
         #     str_lists.append(mapping_flip[id])
         # for string in str_lists:
         #     f.write(string+'\n')
+def produce_example_captions2(per_description):
+    # produce the all combination with every word
+    locations = ['forest', 'canal', 'farm', 'mountain', 'cloud', 'sea', 'ocean', 'desert', 'beach', 'rock', 'field', \
+                    'fog', 'road', 'sand', 'path', 'butte', 'canyon', 'cliff', 'corn', \
+                    'creek', 'glacier', 'grotto', 'hayfield', 'iceberg', \
+                    'islet', 'lagoon', 'rainforest', 'river', 'arch', 'sky', 'snowfield', \
+                    'valley', 'waterfall', 'coast']
+    # track railroad cultivated highway broadleaf house urban natural habor
+    times = ['morning', 'night', '']
+    seasons = ['winter', 'autumn', '']
+    with open('../data/OpenImage/example_captions2.txt', 'w') as f:
+        for location in locations:
+            for time in times:
+                for season in seasons:
+                    for _ in range(per_description):
+                        if time == '' and season == '':
+                            f.write(location+'\n')
+                        elif time == '':
+                            f.write(location+' '+season+'\n')
+                        elif season == '':
+                            f.write(location+' '+time+'\n')
+                        else:
+                            f.write(location+' '+time+' '+season+'\n')
 if __name__ == '__main__':
     print("====Start Preprocess Dataset Script!====")
     keywords = [['forest', 'morning'], ['forest', 'winter'], ['forest', 'night'], ['forest', 'autumn'], \
@@ -509,7 +436,5 @@ if __name__ == '__main__':
                 ['fog', 'forest'], ['fog', 'morning'], ['road', 'forest'], ['road', 'mountain'], ['road', 'night'], \
                 ['road', 'morning'], ['road', 'field']]
     num_pictures = 5000
-    #get_keyword_imgs(keywords, num_pictures)
-    # preprocess_openimage(1.0)
-    # preprocess_sceneImage(split='test')
     produce_example_captions(16)
+    produce_example_captions2(16)
