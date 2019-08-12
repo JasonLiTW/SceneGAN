@@ -4,9 +4,9 @@ Pytorch implementation for scene generation with place and time descriptions.(Th
 This project is based on [AttnGAN: Fine-Grained Text to Image Generation with Attentional Generative Adversarial Networks](http://openaccess.thecvf.com/content_cvpr_2018/papers/Xu_AttnGAN_Fine-Grained_Text_CVPR_2018_paper.pdf) by Tao Xu, Pengchuan Zhang, Qiuyuan Huang, Han Zhang, Zhe Gan, Xiaolei Huang, Xiaodong He. (This work was performed when Tao was an intern with Microsoft Research). 
 
 AttnGAN Architecture
-<img src="attnGAN_framework.png" width="900px" height="350px"/>
+<img src="assets/attnGAN_framework.png" width="900px" height="350px"/>
 SceneGAN Architecture
-<img src="sceneGAN_framework.jpg" width="900px" height="350px"/>
+<img src="assets/sceneGAN_framework.jpg" width="900px" height="350px"/>
 
 ## Target and Difference with AttnGAN
 
