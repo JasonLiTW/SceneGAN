@@ -55,12 +55,14 @@ In addition, please add the project folder to PYTHONPATH and `pip install` or `p
 
 ### Description: **Forest Morning**
 
-* **Imagination Mechanism**
+* Imagination Mechanism
 <img src="assets/Imagination/forest_morning.png" width="256px" height="256px"/>
-* **No Imgination Mechansim**
+* No Imgination Mechansim
 <img src="assets/NoImagination/forest_morning.png" width="256px" height="256px"/>
-* You can see other example from assets directory.
-* Not all generated images are perfect.
+
+P.S
+1. You can see other example from assets directory.
+2. Not all generated images are perfect.
 
 
 ## Reference
