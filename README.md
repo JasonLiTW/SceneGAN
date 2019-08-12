@@ -6,7 +6,7 @@ This project is based on [AttnGAN: Fine-Grained Text to Image Generation with At
 AttnGAN Architecture
 <img src="assets/attnGAN_framework.png" width="900px" height="350px"/>
 SceneGAN Architecture
-<img src="assets/sceneGAN_framework.jpg" width="900px" height="350px"/>
+<img src="assets/sceneGAN_framework.png" width="900px" height="350px"/>
 
 ## Target and Difference with AttnGAN
 
@@ -52,10 +52,12 @@ In addition, please add the project folder to PYTHONPATH and `pip install` or `p
 - `*.yml` files are example configuration files for training/evaluation our models.
 
 ## Compare to Imagination and No Imagination
-Description: **Forest Morning**
-**Imagination Mechanism**
+
+### Description: **Forest Morning**
+
+* **Imagination Mechanism**
 <img src="assets/Imagination/forest_morning.png" width="256px" height="256px"/>
-**No Imgination Mechansim**
+* **No Imgination Mechansim**
 <img src="assets/NoImagination/forest_morning.png" width="256px" height="256px"/>
 * You can see other example from assets directory.
 * Not all generated images are perfect.
