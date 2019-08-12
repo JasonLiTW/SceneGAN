@@ -51,6 +51,15 @@ In addition, please add the project folder to PYTHONPATH and `pip install` or `p
 - Input your own sentence in `./data/OpenImage/example_captions.txt` if you wannt to generate images from customized sentences.(description is listed with 16 batch size)
 - `*.yml` files are example configuration files for training/evaluation our models.
 
+## Compare to Imagination and No Imagination
+Description: **Forest Morning**
+**Imagination Mechanism**
+<img src="assets/Imagination/forest_morning.png" width="256px" height="256px"/>
+**No Imgination Mechansim**
+<img src="assets/NoImagination/forest_morning.png" width="256px" height="256px"/>
+* You can see other example from assets directory.
+* Not all generated images are perfect.
+
 
 ## Reference
 
