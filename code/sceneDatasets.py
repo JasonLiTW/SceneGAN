@@ -127,7 +127,7 @@ class TextDataset(data.Dataset):
             captions_ = captions[0]
         ixtoword = captions[2]
         wordtoix = captions[3]
-        n_words = len(filenames)
+        n_words = len(wordtoix)
         return filenames, captions_, ixtoword, wordtoix, n_words
     
     def load_sentences(self, data_dir, split):

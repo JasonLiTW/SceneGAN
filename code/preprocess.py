@@ -1,5 +1,5 @@
 # create date 2019/1/8 NepTuNe
-# for cocodataset preprocess annotations
+# You should not use this script, unless 
 import pickle
 import json
 import time
@@ -87,103 +87,6 @@ def build_dictionary(train_captions, val_captions, train_id, val_id):
     return [train_captions_new, val_captions_new,
             ixtoword, wordtoix, len(ixtoword)]
 
-def preprocess_dog_cat():
-    train_anno_path = '../data/coco/annotations/captions_train2014.json'
-    val_anno_path = '../data/coco/annotations/captions_val2014.json'
-
-    dogs = ['dogi', 'hotdogs', 'dog', 'bulldog',
-    'sheepdog', 'doggie', 'sheepdogs', 'bulldogs', 'adog',
-    'watchdog', 'dogg', 'dogpile', 'dogs', 'lapdog', 'doggy']
-    #dogs.sort(key=len, reverse=True)
-    cats = ['pussycat', 'bobcat', 'housecat', 'cat', 'cats', 'acat']
-    #cats.sort(key=len, reverse=True)
-    target_string = dogs+cats
-    target_string.sort(key=len, reverse=True)
-
-    signal = ['']
-    train_dict = {}
-    train_id = []
-    val_dict = {}
-    val_id = []
-    counts = 0
-    with open(train_anno_path, 'r') as f:
-        train_data = json.load(f)
-        for anno in train_data['annotations']:
-            for name in target_string:
-                if anno['caption'].endswith(name) and 'hot dog' not in anno['caption'] \
-                    and 'hotdog' not in anno['caption'] and 'hotdogs' not in anno['caption'] \
-                    and 'hot-dogs' not in anno['caption']:
-                    if anno['image_id'] not in train_dict.keys():
-                        train_dict[anno['image_id']] = []
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        # print(caption)
-                        train_dict[anno['image_id']].append(caption)
-                        train_id.append(anno['image_id'])
-                    else:
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        # print(caption)
-                        train_dict[anno['image_id']].append(caption)
-                    counts += 1
-                    break
-    print("Total train sentences used: %d" % counts)
-    counts = 0
-    with open(val_anno_path, 'r') as f:
-        val_data = json.load(f)
-        for anno in val_data['annotations']:
-            for name in target_string:
-                if anno['caption'].endswith(name) and 'hot dog' not in anno['caption'] \
-                    and 'hotdog' not in anno['caption'] and 'hotdogs' not in anno['caption'] \
-                    and 'hot-dogs' not in anno['caption']:
-                    if anno['image_id'] not in val_dict.keys():
-                        val_dict[anno['image_id']] = []
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        val_dict[anno['image_id']].append(caption)
-                        val_id.append(anno['image_id'])
-                    else:
-                        caption = re.sub('[,.!@#$%^&*()_\"\'\n]', '', anno['caption']).lower()
-                        val_dict[anno['image_id']].append(caption)
-                    counts += 1
-    print("Total val sentences used: %d" % counts)
-    train_captions_new, val_captions_new, ixtoword, wordtoix, length = build_dictionary(train_dict, val_dict, train_id, val_id)
-    print("Total train images used: %d" % len(train_captions_new.keys()))
-    print("Total val images used: %d" % len(val_captions_new.keys()))
-    print(len(ixtoword))
-    print(len(wordtoix))
-    record_list = [train_captions_new, val_captions_new, ixtoword, wordtoix]
-    with open('../data/captions_coco.pickle', 'wb') as f:
-        pickle.dump(record_list, f, pickle.HIGHEST_PROTOCOL)
-
-    # create train and val filenames pickle file and each image sentence numbers
-    filenames = []
-    counts = []
-    for image_id in train_id:
-        length = 12
-        counts.append(len(train_captions_new[image_id]))
-        idx = '0'*(length-len(str(image_id)))+str(image_id)
-        filenames.append('COCO_train2014_'+idx)
-        
-
-    with open('../data/train_filenames.pickle', 'wb') as f:
-        pickle.dump(filenames, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/train/dict_ids.pickle', 'wb') as f:
-        pickle.dump(train_id, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/train/sentences.pickle', 'wb') as f:
-        pickle.dump(counts, f, pickle.HIGHEST_PROTOCOL)
-
-    filenames = []
-    counts = []
-    for image_id in val_id:
-        length = 12
-        counts.append(len(val_captions_new[image_id]))
-        idx = '0'*(length-len(str(image_id)))+str(image_id)
-        filenames.append('COCO_val2014_'+idx)
-    with open('../data/val_filenames.pickle', 'wb') as f:
-        pickle.dump(filenames, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/test/dict_ids.pickle', 'wb') as f:
-        pickle.dump(val_id, f, pickle.HIGHEST_PROTOCOL)
-    with open('../data/coco/test/sentences.pickle', 'wb') as f:
-        pickle.dump(counts, f, pickle.HIGHEST_PROTOCOL)
-
 def preprocess_openimage(confidence): 
     # preprocess original OpenImage Dataset annotation file
 
@@ -194,25 +97,25 @@ def preprocess_openimage(confidence):
         class_descriptions = pd.read_csv('../data/OpenImage/class-descriptions.csv', header=None)
         ixtolabel = {}
         for i in range(class_descriptions.shape[0]):
-            ixtolabel[class_descriptions.iloc[i][0]] = class_descriptions.iloc[i][1]
-        # print("Find Same Labels preprocessing! Strart count time!")
-        # t0 = time.clock()
-        # dataset = TextDataset('../data/coco', 'train', base_size=299)
-        # wordtoix = dataset.wordtoix
-        # df_labels = pd.read_csv('../data/OpenImage/class-descriptions.csv', header=None)
-        # labels = {}
-        # id_labels = {}
-        # for i in range(df_labels.shape[0]):
-        #     labels[df_labels.iloc[i][1].lower()] = df_labels.iloc[i][0]
-        #     id_labels[df_labels.iloc[i][0]] = df_labels.iloc[i][1].lower()
-        # #print(labels.keys())
-        # same_labels = []
-        # counts = 0
-        # for key in list(labels.keys()):
-        #     if key in wordtoix:
-        #         same_labels.append(key)
-        #         counts += 1
-        # print(counts)
+            ixtolabel[class_descriptions.iloc[i][0]] = class_descriptions.iloc[i][1].lower()
+        print("Find Same Labels preprocessing! Strart count time!")
+        t0 = time.clock()
+        dataset = TextDataset('../data/coco', 'train', base_size=299)
+        wordtoix = dataset.wordtoix
+        df_labels = pd.read_csv('../data/OpenImage/class-descriptions.csv', header=None)
+        labels = {}
+        id_labels = {}
+        for i in range(df_labels.shape[0]):
+            labels[df_labels.iloc[i][1].lower()] = df_labels.iloc[i][0]
+            id_labels[df_labels.iloc[i][0]] = df_labels.iloc[i][1].lower()
+        #print(labels.keys())
+        same_labels = []
+        counts = 0
+        for key in list(labels.keys()):
+            if key in wordtoix:
+                same_labels.append(key)
+                counts += 1
+        print(counts)
         machine_label_path = 'train-annotations-machine-imagelabels.csv'
         # del df_labels
         df_machine_labels = pd.read_csv('../data/OpenImage/'+machine_label_path)
@@ -267,27 +170,27 @@ def preprocess_openimage(confidence):
 
 def get_keyword_imgs(keywords, num_pictures):    
     def job(q, df, num_pictures, order):
-        with open('../data/machine-merge.pickle', 'rb') as f:
+        with open('../../AttnGAN_scene/data/machine-merge.pickle', 'rb') as f:
             data = pickle.load(f)
             keys = list(data.keys())
         while not q.empty():
             word1, word2 = q.get()
             print('Thread %d Start download imgs for word1: %s and word2: %s\nLeave q size: %d' % (order, word1, word2, q.qsize()))
-            data_train_dir = '../data/OpenImage/train/' + word1 + '_' + word2
-            data_val_dir = '../data/OpenImage/val/' + word1 + '_' + word2
+            data_train_dir = '../../AttnGAN_scene/data/OpenImage/train/' + word1 + '_' + word2
+            data_val_dir = '../../AttnGAN_scene/data/OpenImage/val/' + word1 + '_' + word2
             count = 1
             if not os.path.exists(data_train_dir):
                 os.makedirs(data_train_dir)
             if not os.path.exists(data_val_dir):
                 os.makedirs(data_val_dir)
             for key in keys:
-                if count == num_pictures:
+                if count == num_pictures or count >= len(keys):
                     break
                 if word1 in data[key] and word2 in data[key] and 'people' not in data[key] and \
                     'man' not in data[key] and 'woman' not in data[key]:
                     if count % 100 == 0:
                         print('Thread %d download %d imgs for word1: %s and word2: %s' % (order, count, word1, word2))
-                    if np.random.random() > 0.1:
+                    if np.random.random() > 0.0:
                         url = df[df['ImageID'] == key]['OriginalURL'].values[0]
                         get_img_by_url(data_train_dir, key, url)
                     elif np.random.random() <= 0.1:
@@ -298,7 +201,7 @@ def get_keyword_imgs(keywords, num_pictures):
             print('Thread %d Finished download imgs for word1: %s and word2: %s' % (order, word1, word2))
     def clean_null_img(keywords, split):
         for keyword in keywords:
-            data_dir = '../data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
+            data_dir = '../../AttnGAN_scene/data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
             filenames = os.listdir(data_dir)
             for filename in filenames:
                 file_path = data_dir+'/'+filename
@@ -307,7 +210,7 @@ def get_keyword_imgs(keywords, num_pictures):
                         os.remove(file_path)
     def resize(keywords, split):
         for index, keyword in enumerate(keywords):
-            data_dir = '../data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
+            data_dir = '../../AttnGAN_scene/data/OpenImage/' + split + '/' + keyword[0] + '_' + keyword[1]
             print("Start %s split %d" % (split, index))
             new_dir = data_dir+'/resize/'
             if not os.path.exists(new_dir):
@@ -317,26 +220,29 @@ def get_keyword_imgs(keywords, num_pictures):
                 if filename == 'resize':
                     continue
                 file_path = data_dir+'/'+filename                
-                piexif.remove(file_path)
-                image = Image.open(file_path)
-                image = resize_image(image, 256)
-                image.save(new_dir+filename)
-    # df = pd.read_csv('../data/OpenImage/image_ids_and_rotation.csv')
-    # q = Queue()
-    # for list_words in keywords:
-    #     q.put(list_words)
-    # mps = []
-    # mp_num = 6    
-    # for i in range(mp_num):
-    #     mps.append(mp.Process(target=job, args=(q, df, num_pictures, i+1)))
-    #     mps[i].start()
-    # for j in range(mp_num):
-    #     mps[j].join()
-    # print("========================Start clear Null Imgs========================")
-    # clean_null_img(keywords, 'train')
-    # clean_null_img(keywords, 'test')
+                try:
+                    piexif.remove(file_path)
+                    image = Image.open(file_path)
+                    image = resize_image(image, 256)
+                    image.save(new_dir+filename)
+                except:
+                    continue
+    df = pd.read_csv('../../AttnGAN_scene/data/OpenImage/image_ids_and_rotation.csv')
+    q = Queue()
+    for list_words in keywords:
+        q.put(list_words)
+    mps = []
+    mp_num = 11
+    for i in range(mp_num):
+        mps.append(mp.Process(target=job, args=(q, df, num_pictures, i+1)))
+        mps[i].start()
+    for j in range(mp_num):
+        mps[j].join()
+    print("========================Start clear Null Imgs========================")
+    clean_null_img(keywords, 'train')
+    #clean_null_img(keywords, 'test')
     resize(keywords, 'train')
-    resize(keywords, 'test')
+    #resize(keywords, 'test')
     print("=========================Main thread Finished=========================")
     
 def preprocess_sceneImage(split):
@@ -346,14 +252,14 @@ def preprocess_sceneImage(split):
                 ['beach', 'winter'], ['beach', 'night'], ['beach', 'morning'], ['beach', 'sunset'], ['rock', 'field'], \
                 ['fog', 'forest'], ['fog', 'morning'], ['road', 'forest'], ['road', 'mountain'], ['road', 'night'], \
                 ['road', 'morning'], ['road', 'field']]
-    scene_spec = ['sand', 'mountain', 'mountain_path', 'mountain_snowy', 'beach', 'beach_house', 'butte', 'canal_urban', 'canal_natural'\
+    scene_spec = ['sand', 'mountain', 'mountain_path', 'mountain_snowy', 'beach', 'beach_house', 'butte', 'canal_urban', 'canal_natural', \
             'canyon', 'cliff', 'corn_field', 'creek', 'desert_road', 'farm', 'field_cultivated', 'field_road', 'forest_broadleaf', \
             'forest_path', 'forest_road', 'glacier', 'grotto', 'harbor', 'hayfield', 'highway', 'iceberg', 'islet', \
             'lagoon', 'ocean', 'railroad_track', 'rainforest', 'river', 'rock_arch', 'sky', 'snowfield', 'valley', \
             'waterfall', 'coast']
 
     # f/field/cultivated c/canal/urban f/forest/broadleaf c/canal/natural
-    captions = pd.read_csv('../data/OpenImage/target.csv', header=None)
+    captions = pd.read_csv('../../AttnGAN_scene/data/OpenImage/target.csv', header=None)
     scene_captions = [spe for spe in scene_spec]
     word_counts = defaultdict(float)
     # vocabulary for OpenImage
@@ -395,9 +301,9 @@ def preprocess_sceneImage(split):
     class_ids = []
 
     for index, keyword in enumerate(keywords):
-        filenames = os.listdir('../data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize')
+        filenames = os.listdir('../../AttnGAN_scene/data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize')
         for filename in filenames:
-            filePaths.append('../data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize/'+filename)
+            filePaths.append('../../AttnGAN_scene/data/OpenImage/'+split+'/'+keyword[0]+'_'+keyword[1]+'/resize/'+filename)
             fileCaptions.append(captions_new[index])
             caption_lens.append(len(captions_new[index]))
             class_ids.append(index)
@@ -405,15 +311,15 @@ def preprocess_sceneImage(split):
     for index, keyword in enumerate(scene_captions):
         count = 0
         if split == 'train':
-            with open('../data/scene/places365_train_standard.txt', 'r') as f:
+            with open('../../AttnGAN_scene/data/scene/places365_train_standard.txt', 'r') as f:
                 data = f.readlines()
                 filenames = [spec.strip('\n') for spec in data]
             for filename in filenames:
                 if filename.split(' ')[0].split('/')[-2] == keyword and count < 1000:                    
-                    filePaths.append('../data/scene/data_large' + filename.split(' ')[0])                    
+                    filePaths.append('../../AttnGAN_scene/data/scene/data_large' + filename.split(' ')[0])                    
                     count += 1
                 elif filename.split(' ')[0].split('/')[-2] == keyword.split('_')[-1] and count < 1000:
-                    filePaths.append('../data/scene/data_large' + filename.split(' ')[0])
+                    filePaths.append('../../AttnGAN_scene/data/scene/data_large' + filename.split(' ')[0])
                     count += 1
                 elif count < 1000:                    
                     continue
@@ -443,6 +349,84 @@ def resize_image(image, size=256):
     image = image.crop((x, y, x+size, y+size))
     
     return image
+def produce_example_captions(each_captions):
+    # produce only training description combinations
+    keywords = ['forest_morning', 'forest_winter', 'forest_night', 'forest_autumn', \
+                'canal_morning', 'canal_night', 'canal_autumn', 'canal_winter', 'farm_morning', 'mountain_morning',\
+                'mountain_night', 'mountain_cloud', 'mountain_sea', 'mountain_ocean', 'mountain_desert', \
+                'beach_winter', 'beach_night', 'beach_morning', 'beach_sunset', 'rock_field', \
+                'fog_forest', 'fog_morning', 'road_forest', 'road_mountain', 'road_night', \
+                'road_morning', 'road_field']
+    scene_spec = ['sand', 'mountain', 'mountain_path', 'mountain_snowy', 'beach', 'beach_house', 'butte', 'canal_urban', 'canal_natural', \
+            'canyon', 'cliff', 'corn_field', 'creek', 'desert_road', 'farm', 'field_cultivated', 'field_road', 'forest_broadleaf', \
+            'forest_path', 'forest_road', 'glacier', 'grotto', 'harbor', 'hayfield', 'highway', 'iceberg', 'islet', \
+            'lagoon', 'ocean', 'railroad_track', 'rainforest', 'river', 'rock_arch', 'sky', 'snowfield', 'valley', \
+            'waterfall', 'coast']
+    with open('../data/OpenImage/example_captions.txt', 'w') as f:
+        mapping = {}
+        mapping_flip = {}
+        cap_lists = []
+        index = 0
+        for cap in keywords:
+            cap = cap.replace('_', ' ')
+            if len(cap.split(' ')) == 1:
+                continue
+            cap_lists.append(cap)
+        for cap in scene_spec:
+            cap = cap.replace('_', ' ')
+            if len(cap.split(' ')) == 1:
+                continue
+            cap_lists.append(cap)
+        for cap in cap_lists:
+            for _ in range(each_captions):
+                f.write(cap+'\n')
+        # for cap in keywords:
+        #     cap = cap.replace('_', ' ')
+        #     if len(cap.split(' ')) == 1:
+        #         continue
+        #     mapping[cap] = index
+        #     index += 1
+        # for cap in scene_spec:
+        #     cap = cap.replace('_', ' ')
+        #     if len(cap.split(' ')) == 1:
+        #         continue
+        #     mapping[cap] = index
+        #     index += 1
+        # caption_lists = []
+        # for key in mapping.keys():
+        #     mapping_flip[mapping[key]] =  key
+        # for key in mapping.keys():
+        #     for _ in range(each_captions):
+        #         caption_lists.append(mapping[key])
+        # np.random.shuffle(caption_lists)
+        # str_lists = []
+        # for id in caption_lists:
+        #     str_lists.append(mapping_flip[id])
+        # for string in str_lists:
+        #     f.write(string+'\n')
+def produce_example_captions2(per_description):
+    # produce the all combination with every word
+    locations = ['forest', 'canal', 'farm', 'mountain', 'cloud', 'sea', 'ocean', 'desert', 'beach', 'rock', 'field', \
+                    'fog', 'road', 'sand', 'path', 'butte', 'canyon', 'cliff', 'corn', \
+                    'creek', 'glacier', 'grotto', 'hayfield', 'iceberg', \
+                    'islet', 'lagoon', 'rainforest', 'river', 'arch', 'sky', 'snowfield', \
+                    'valley', 'waterfall', 'coast']
+    # track railroad cultivated highway broadleaf house urban natural habor
+    times = ['morning', 'night', '']
+    seasons = ['winter', 'autumn', '']
+    with open('../data/OpenImage/example_captions2.txt', 'w') as f:
+        for location in locations:
+            for time in times:
+                for season in seasons:
+                    for _ in range(per_description):
+                        if time == '' and season == '':
+                            f.write(location+'\n')
+                        elif time == '':
+                            f.write(location+' '+season+'\n')
+                        elif season == '':
+                            f.write(location+' '+time+'\n')
+                        else:
+                            f.write(location+' '+time+' '+season+'\n')
 if __name__ == '__main__':
     print("====Start Preprocess Dataset Script!====")
     keywords = [['forest', 'morning'], ['forest', 'winter'], ['forest', 'night'], ['forest', 'autumn'], \
@@ -451,7 +435,6 @@ if __name__ == '__main__':
                 ['beach', 'winter'], ['beach', 'night'], ['beach', 'morning'], ['beach', 'sunset'], ['rock', 'field'], \
                 ['fog', 'forest'], ['fog', 'morning'], ['road', 'forest'], ['road', 'mountain'], ['road', 'night'], \
                 ['road', 'morning'], ['road', 'field']]
-    num_pictures = 1000
-    # get_keyword_imgs(keywords, num_pictures)
-    # preprocess_openimage(1.0)
-    preprocess_sceneImage(split='train')
+    num_pictures = 5000
+    produce_example_captions(16)
+    produce_example_captions2(16)

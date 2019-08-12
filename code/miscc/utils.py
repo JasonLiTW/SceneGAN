@@ -54,8 +54,8 @@ def build_super_images3(real_imgs, captions, ixtoword,
                         attn_maps, att_sze, lr_imgs=None,
                         batch_size=cfg.TRAIN.BATCH_SIZE,
                         max_word_num=cfg.TEXT.WORDS_NUM):
-    nvis = 12
-    row_num = 4
+    nvis = 9
+    row_num = 3
     col_num = 3
     real_imgs = real_imgs[:nvis]
     hr_img_size = real_imgs.size(2)
@@ -65,11 +65,11 @@ def build_super_images3(real_imgs, captions, ixtoword,
     lr_imgs = nn.Upsample(size=(hr_img_size, hr_img_size), mode='bilinear')(lr_imgs)
     for y in range(1,row_num+1):
         for x in range(1,col_num+1):
-            lr = lr_imgs[(x-1)+(y-1)*3].add_(1).div_(2).mul_(255)
+            lr = lr_imgs[(x-1)+(y-1)*col_num].add_(1).div_(2).mul_(255)
             lr = lr.data.numpy().astype(np.uint8)
             lr = lr.transpose([1,2,0])
             lr = Image.fromarray(lr)
-            hr = real_imgs[(x-1)+(y-1)*3].add_(1).div_(2).mul_(255)
+            hr = real_imgs[(x-1)+(y-1)*col_num].add_(1).div_(2).mul_(255)
             hr = hr.data.numpy().astype(np.uint8)
             hr = hr.transpose([1,2,0])
             hr = Image.fromarray(hr)

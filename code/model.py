@@ -97,6 +97,7 @@ class RNN_ENCODER(nn.Module):
     def define_module(self):
         self.encoder = nn.Embedding(self.ntoken, self.ninput)
         self.drop = nn.Dropout(self.drop_prob)
+        self.relu = GLU()
         if self.rnn_type == 'LSTM':
             # dropout: If non-zero, introduces a dropout layer on
             # the outputs of each RNN layer except the last layer
@@ -104,6 +105,10 @@ class RNN_ENCODER(nn.Module):
                                self.nlayers, batch_first=True,
                                dropout=self.drop_prob,
                                bidirectional=self.bidirectional)
+            self.fc = nn.Linear(48*64*64, self.nhidden, bias=True)
+            # fc for stage2's imagination
+            self.fc2 = nn.Linear(48*128*128, self.nhidden, bias=True)
+            # fc2 for stage3's imagination
         elif self.rnn_type == 'GRU':
             self.rnn = nn.GRU(self.ninput, self.nhidden,
                               self.nlayers, batch_first=True,
@@ -131,16 +136,26 @@ class RNN_ENCODER(nn.Module):
             return Variable(weight.new(self.nlayers * self.num_directions,
                                        bsz, self.nhidden).zero_())
 
-    def forward(self, captions, cap_lens, hidden, mask=None):
+    def forward(self, captions, cap_lens, h_code, mask=None):
         # input: torch.LongTensor of size batch x n_steps
         # --> emb: batch x n_steps x ninput
         emb = self.drop(self.encoder(captions))
 
-        # add by neptune 2019/02/15
-        # noise = torch.randn(emb.size(0), emb.size(1), self.word_rand).cuda()
-        # emb = torch.cat((emb, noise), dim=2)
-        
-        # Returns: a PackedSequence object
+        # add by Neptune 2019/02/22 to init cell memory
+        if h_code is not None:
+            if h_code.size(2) == 64:
+                cell_hidden = F.leaky_relu(self.fc(h_code.view(cfg.TRAIN.BATCH_SIZE, -1)), negative_slope=0.1)
+                cell_hidden = cell_hidden.unsqueeze_(0).repeat(self.nlayers*self.num_directions,1,1)
+            elif h_code.size(2) == 128:
+                cell_hidden = F.leaky_relu(self.fc2(h_code.view(cfg.TRAIN.BATCH_SIZE, -1)), negative_slope=0.1)
+                cell_hidden = cell_hidden.unsqueeze_(0).repeat(self.nlayers*self.num_directions,1,1)
+            if cfg.CUDA:
+                cell_hidden = (Variable(torch.ones(self.nlayers * self.num_directions,
+                                                cfg.TRAIN.BATCH_SIZE, self.nhidden).zero_()).cuda(), cell_hidden.cuda())
+        else:
+            cell_hidden = self.init_hidden(cfg.TRAIN.BATCH_SIZE)
+                
+        # Returns: a PackedSequence object        
         cap_lens = cap_lens.data.tolist()
         emb = pack_padded_sequence(emb, cap_lens, batch_first=True)
         # #hidden and memory (num_layers * num_directions, batch, hidden_size):
@@ -148,7 +163,7 @@ class RNN_ENCODER(nn.Module):
         # #output (batch, seq_len, hidden_size * num_directions)
         # #or a PackedSequence object:
         # tensor containing output features (h_t) from the last layer of RNN
-        output, hidden = self.rnn(emb, hidden)
+        output, hidden = self.rnn(emb, cell_hidden)
         # PackedSequence object
         # --> (batch, seq_len, hidden_size * num_directions)
         output = pad_packed_sequence(output, batch_first=True)[0]
@@ -161,7 +176,7 @@ class RNN_ENCODER(nn.Module):
         else:
             sent_emb = hidden.transpose(0, 1).contiguous()
         sent_emb = sent_emb.view(-1, self.nhidden * self.num_directions)
-        return words_emb, sent_emb
+        return words_emb, sent_emb, cell_hidden
 
 
 class CNN_ENCODER(nn.Module):
@@ -312,7 +327,7 @@ class CA_NET(nn.Module):
 class INIT_STAGE_G(nn.Module):
     def __init__(self, ngf, ncf):
         super(INIT_STAGE_G, self).__init__()
-        self.gf_dim = ngf
+        self.gf_dim = ngf # 768
         self.in_dim = cfg.GAN.Z_DIM + ncf  # cfg.TEXT.EMBEDDING_DIM
 
         self.define_module()
@@ -352,12 +367,13 @@ class INIT_STAGE_G(nn.Module):
 
 
 class NEXT_STAGE_G(nn.Module):
-    def __init__(self, ngf, nef, ncf):
+    def __init__(self, ngf, nef, ncf, text_encoder):
         super(NEXT_STAGE_G, self).__init__()
-        self.gf_dim = ngf
-        self.ef_dim = nef
-        self.cf_dim = ncf
+        self.gf_dim = ngf # 48
+        self.ef_dim = nef # 256
+        self.cf_dim = ncf # 100
         self.num_residual = cfg.GAN.R_NUM
+        self.text_encoder = text_encoder
         self.define_module()
 
     def _make_layer(self, block, channel_num):
@@ -369,16 +385,19 @@ class NEXT_STAGE_G(nn.Module):
     def define_module(self):
         ngf = self.gf_dim
         self.att = ATT_NET(ngf, self.ef_dim)
+        self.ca_net = CA_NET()
         self.residual = self._make_layer(ResBlock, ngf * 2)
         self.upsample = upBlock(ngf * 2, ngf)
 
-    def forward(self, h_code, c_code, word_embs, mask):
+    def forward(self, h_code, captions, cap_lens, mask):
         """
             h_code1(query):  batch x idf x ih x iw (queryL=ihxiw)
             word_embs(context): batch x cdf x sourceL (sourceL=seq_len)
             c_code1: batch x idf x queryL
             att1: batch x sourceL x queryL
         """
+        word_embs, sent_emb, cell_hidden = self.text_encoder(captions, cap_lens, h_code)
+        c_code, _, _ = self.ca_net(sent_emb)
         self.att.applyMask(mask)
         c_code, att = self.att(h_code, word_embs)
         h_c_code = torch.cat((h_code, c_code), 1)
@@ -387,7 +406,7 @@ class NEXT_STAGE_G(nn.Module):
         # state size ngf/2 x 2in_size x 2in_size
         out_code = self.upsample(out_code)
 
-        return out_code, att
+        return out_code, att, cell_hidden
 
 
 class GET_IMAGE_G(nn.Module):
@@ -405,11 +424,11 @@ class GET_IMAGE_G(nn.Module):
 
 
 class G_NET(nn.Module):
-    def __init__(self):
+    def __init__(self, text_encoder):
         super(G_NET, self).__init__()
-        ngf = cfg.GAN.GF_DIM
-        nef = cfg.TEXT.EMBEDDING_DIM
-        ncf = cfg.GAN.CONDITION_DIM
+        ngf = cfg.GAN.GF_DIM # 48
+        nef = cfg.TEXT.EMBEDDING_DIM # 256
+        ncf = cfg.GAN.CONDITION_DIM # 100
         self.ca_net = CA_NET()
 
         if cfg.TREE.BRANCH_NUM > 0:
@@ -417,13 +436,13 @@ class G_NET(nn.Module):
             self.img_net1 = GET_IMAGE_G(ngf)
         # gf x 64 x 64
         if cfg.TREE.BRANCH_NUM > 1:
-            self.h_net2 = NEXT_STAGE_G(ngf, nef, ncf)
+            self.h_net2 = NEXT_STAGE_G(ngf, nef, ncf, text_encoder)
             self.img_net2 = GET_IMAGE_G(ngf)
         if cfg.TREE.BRANCH_NUM > 2:
-            self.h_net3 = NEXT_STAGE_G(ngf, nef, ncf)
+            self.h_net3 = NEXT_STAGE_G(ngf, nef, ncf, text_encoder)
             self.img_net3 = GET_IMAGE_G(ngf)
 
-    def forward(self, z_code, sent_emb, word_embs, mask):
+    def forward(self, z_code, sent_emb, word_embs, mask, captions, cap_lens):
         """
             :param z_code: batch x cfg.GAN.Z_DIM
             :param sent_emb: batch x cfg.TEXT.EMBEDDING_DIM
@@ -433,6 +452,7 @@ class G_NET(nn.Module):
         """
         fake_imgs = []
         att_maps = []
+        hiddens = []
         c_code, mu, logvar = self.ca_net(sent_emb)
 
         if cfg.TREE.BRANCH_NUM > 0:
@@ -440,21 +460,25 @@ class G_NET(nn.Module):
             fake_img1 = self.img_net1(h_code1)
             fake_imgs.append(fake_img1)
         if cfg.TREE.BRANCH_NUM > 1:
-            h_code2, att1 = \
-                self.h_net2(h_code1, c_code, word_embs, mask)
+            h_code2, att1, cell_hidden_1 = \
+                self.h_net2(h_code1, captions, cap_lens, mask)
             fake_img2 = self.img_net2(h_code2)
             fake_imgs.append(fake_img2)
             if att1 is not None:
                 att_maps.append(att1)
+            if cell_hidden_1 is not None:
+                hiddens.append(cell_hidden_1)
         if cfg.TREE.BRANCH_NUM > 2:
-            h_code3, att2 = \
-                self.h_net3(h_code2, c_code, word_embs, mask)
+            h_code3, att2, cell_hidden_2 = \
+                self.h_net3(h_code2, captions, cap_lens, mask)
             fake_img3 = self.img_net3(h_code3)
             fake_imgs.append(fake_img3)
             if att2 is not None:
                 att_maps.append(att2)
+            if cell_hidden_2 is not None:
+                hiddens.append(cell_hidden_2)
 
-        return fake_imgs, att_maps, mu, logvar
+        return fake_imgs, att_maps, mu, logvar, hiddens
 
 
 

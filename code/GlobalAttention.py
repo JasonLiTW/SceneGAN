@@ -25,7 +25,10 @@ import torch.nn as nn
 def conv1x1(in_planes, out_planes):
     "1x1 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=1,
-                     padding=0, bias=False)
+                    padding=0, bias=False)
+def conv3x3(in_planes, out_planes):
+    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=1,
+                    padding=0, bias=False)
 
 
 def func_attention(query, context, gamma1):
@@ -104,7 +107,16 @@ class GlobalAttentionGeneral(nn.Module):
         attn = attn.view(batch_size*queryL, sourceL)
         if self.mask is not None:
             # batch_size x sourceL --> batch_size*queryL x sourceL
+            
+            
             mask = self.mask.repeat(queryL, 1)
+            
+            if attn.size()[-1] < mask.size()[-1]:
+                mask.data = mask.data[:attn.size()[0],:attn.size()[1]]
+            # 生成example時，批次生成16張 會產生錯誤 attn的size會小於mask
+
+            #print("sizesizesizesizesizesize", mask.size(), attn.size())
+            #print(mask.data)
             attn.data.masked_fill_(mask.data, -float('inf')) # 把caption=0 "<end>"的地方機率設到無限小
         attn = self.sm(attn)  # Eq. (2)
         # --> batch x queryL x sourceL
